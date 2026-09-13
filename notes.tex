@@ -1,0 +1,132 @@
+\documentclass[oneside]{scrbook}
+\KOMAoptions{
+  paper=letter,
+  fontsize=12pt,
+  parskip=full,
+  headings=small,
+}
+
+\usepackage{import}
+\usepackage{tikz}
+
+\usetikzlibrary{arrows.meta, positioning, calc, decorations.pathreplacing}
+
+\usepackage[mode=tex]{standalone}
+
+\usepackage{amsmath, amssymb, amsthm, mathtools, stmaryrd}
+\usepackage{algorithm, algorithmic}
+
+\usepackage{booktabs}
+
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{remark}[theorem]{Remark}
+
+\usepackage{fmtcount}
+
+\usepackage{mlmodern}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+
+\usepackage{pgffor}
+
+\usepackage{xcolor}
+\usepackage[colorlinks, allcolors=blue!50!black]{hyperref}
+
+\usepackage{cleveref}
+
+\usepackage{enumitem}
+\setlist{nosep}
+
+\pagestyle{plain}
+
+\usepackage[backend=biber, style=alphabetic]{biblatex}
+\addbibresource{references.bib}
+
+\usepackage[en-CA]{datetime2}
+
+\newcommand{\lecture}[3]{
+    \clearpage
+    \phantomsection
+    \noindent
+    \Ordinalstringnum{#1} Lecture \hfill \DTMdate{#2}\\[0.5em]
+    {\Large \textsf{\textbf{#3}}}
+    \par\vspace{0.5em}
+    \hrule
+    \vspace{1em}
+    \addcontentsline{toc}{chapter}{\texorpdfstring{\Ordinalstringnum{#1} Lecture}{Lecture #1}: #3 (\texorpdfstring{\DTMdate{#2}}{#2})}
+    \stepcounter{chapter}
+    \setcounter{chapter}{#1}
+}
+
+\title{Notes for Public-Key Cryptography}
+\author{Guilherme Zeus Dantas e Moura}
+\date{Fall 2026}
+
+\begin{document}
+
+\maketitle
+
+This document contains my lecture notes for CO 685,
+a graduate course on The Mathematics of Public-Key Cryptography,
+taught by Sam Jaques at the University of Waterloo in the Fall 2026 term.
+Any errors, inaccuracies, or misinterpretations are my own.
+Use these notes at your own discretion,
+and please feel free to point out any corrections that may be needed.
+
+Here's the course description from the outline, by Sam Jaques:
+\begin{quote}
+    An in-depth study of public-key cryptography, including: number-theoretic problems - prime generation, integer factorization, discrete logarithms; public-key encryption; digital signatures; key establishment; elliptic curve cryptography; post-quantum cryptography; and security proofs.
+\end{quote}
+
+The tentative class plan is to cover:
+\begin{itemize}[left=0pt]
+    \item Diffie-Hellman Key Exchange (\(\approx 6\) weeks)
+    \begin{itemize}[left=0pt]
+        \item The basic idea of public key exchange over groups; the discrete log problem; square-and-multiply
+        \item The group of \(\mathbb{Z}_p^*\): primality testing; structure of modular integers; rings and fields
+        \item Elliptic curves: a geometric picture; unexplained facts about elliptic curves
+        \item Discrete log algorithms: Baby-step giant-step, Pollard's rho, Pohlig-Hellman, Index Calculus
+    \end{itemize}
+    \item Formal Security (\(\approx 4\) weeks)
+    \begin{itemize}[left=0pt]
+        \item Working with security assumptions; assumptions over finite fields and elliptic curves
+        \item IND-CPA and IND-CCA; proofs of IND-C\{C/P\}A security of Diffie-Hellman exchange; Fujisaki-Okamoto transform
+        \item Zero Knowledge proofs; Fiat-Shamir transform
+        \item Digital signatures (Schnorr, DSA, ECDSA)
+    \end{itemize}
+    \item Learning-With-Errors (\(\approx 2\) weeks)
+    \begin{itemize}[left=0pt]
+        \item LWE definition; key exchange; signatures
+        \item Lattices; lattice attacks
+        \item Ring-LWE; polynomial rings and finite fields
+    \end{itemize}
+    \item RSA (time permitting)
+    \begin{itemize}[left=0pt]
+        \item Encryption; signatures
+        \item Attacks; security proofs
+    \end{itemize}
+\end{itemize}
+
+The references for the course are the following textbooks and resources:
+\cite{HoffsteinPipherSilverman2014},
+\cite{BonehShoup2023},
+\cite{JaquesNotes}.
+
+\tableofcontents
+
+\foreach \i in {01, 02, 03, 04, 05, 06, 07, 08, 09, 10, ..., 99} {%
+    \edef\FileName{lectures/\i.tex}%
+    \IfFileExists{\FileName}{%
+      \input{\FileName}%
+    }%
+  }
+
+\printbibliography
+
+\end{document}

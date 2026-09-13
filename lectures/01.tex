@@ -1,0 +1,243 @@
+\lecture{1}{2026-09-10}{Diffie--Hellman Key Exchange}
+
+We describe the Diffie--Hellman key exchange and ElGamal encryption.
+
+\begin{definition}[Diffie--Hellman Key Exchange and ElGamal Encryption]
+    The public parameters of the protocol are a group \(G\), an element \(g \in G\), and an embedding of messages into the group \(G\).
+
+    Alice samples \(a \in \mathbb{Z}\) at random, computes \(A = g^a\), and sends \(A\) to Bob.
+    Bob samples \(b \in \mathbb{Z}\) at random, computes \(B = g^b\), and sends \(B\) to Alice.
+    Bob computes \(S_{\text{Bob}} = A^b\) and Alice computes \(S_{\text{Alice}} = B^a\).
+    Both parties establish the same \emph{shared secret} \(S = S_{\text{Bob}} = S_{\text{Alice}}\) because
+    \[
+        S_{\text{Bob}} = A^b = (g^a)^b = g^{ab} = g^{ba} = (g^b)^a = B^a = S_{\text{Alice}}.
+    \]
+
+    After establishing the shared secret \(S\), Bob encrypts and sends a message \(m\) to Alice:
+    Bob embeds \(m\) into a group element \(M \in G\), computes the ciphertext \(C = S_{\text{Bob}} \cdot M\), and sends \(C\) to Alice.
+    Alice computes \(M = S_{\text{Alice}}^{-1} \cdot C\) and recovers the message \(m\) from \(M\).
+\end{definition}
+
+The information available to an eavesdropper (Eve) over the public channel is \(g\), \(A\), \(B\), and \(C\).
+
+The first part of this protocol (exchanging \(A, B\) to establish the shared secret \(S\)) is the \emph{Diffie--Hellman key exchange}, while the full scheme (using \(S\) to encrypt and transmit the message \(M\)) is \emph{ElGamal encryption}.
+
+\begin{figure}[H]
+\centering
+\setlength{\abovecaptionskip}{6pt}
+\begin{tikzpicture}[
+    actor/.style={draw, rounded corners=2pt, minimum width=1.4cm, minimum height=0.5cm, font=\bfseries\small},
+    msg/.style={->, >=Stealth, thick},
+    comp/.style={font=\footnotesize, inner xsep=0pt, inner ysep=1pt, outer sep=0pt}
+]
+    % Actors and Channel
+    \node[align=center, font=\bfseries\scriptsize, text=darkgray] (eve) at (0, 0) {Public Channel\\(Eve)};
+    \node[actor, left=0.35cm of eve] (alice) {Alice};
+    \node[actor, right=0.35cm of eve] (bob)   {Bob};
+
+    % --- Phase 1: Diffie-Hellman Key Exchange ---
+    % Step 1: Sampling & Exponentiation
+    \node[comp, anchor=east] (a_sample) at ([xshift=-4pt, yshift=-0.35cm] alice.south) {
+        sample \(a \in \mathbb{Z}\)
+    };
+    \node[comp, anchor=east] (a_comp_A) at ([xshift=-4pt, yshift=-0.72cm] alice.south) {
+        compute \(A = g^a\)
+    };
+
+    \node[comp, anchor=west] (b_sample) at ([xshift=4pt, yshift=-0.35cm] bob.south) {
+        sample \(b \in \mathbb{Z}\)
+    };
+    \node[comp, anchor=west] (b_comp_B) at ([xshift=4pt, yshift=-0.72cm] bob.south) {
+        compute \(B = g^b\)
+    };
+
+    % Step 2: Secret Derivation
+    \node[comp, anchor=east] (a_comp_S) at ([xshift=-4pt, yshift=-1.35cm] alice.south) {
+        compute \(S_{\text{Alice}} = B^a\)
+    };
+    \node[comp, anchor=west] (b_comp_S) at ([xshift=4pt, yshift=-1.35cm] bob.south) {
+        compute \(S_{\text{Bob}} = A^b\)
+    };
+    
+    % Crossing Key Exchange Arrows
+    \draw[msg] (alice.south |- a_comp_A) -- (bob.south |- b_comp_S) 
+        node[pos=0.25, above, sloped, font=\small] {send \(A\)};
+    \draw[msg] (bob.south |- b_comp_B) -- (alice.south |- a_comp_S) 
+        node[pos=0.25, above, sloped, font=\small] {send \(B\)};
+
+    % Dividing coordinate (between DH and ElGamal)
+    \coordinate (div_y) at ([yshift=-0.18cm] $ (a_comp_S.south)!0.5!(b_comp_S.south) $);
+
+    % --- Phase 2: ElGamal Message Transmission ---
+    \node[comp, anchor=west] (b_embed) at ([xshift=4pt, yshift=-0.22cm] bob.south |- div_y) {
+        embed \(m \mapsto M \in G\)
+    };
+    \node[comp, anchor=west] (b_comp_C) at ([xshift=4pt, yshift=-0.59cm] bob.south |- div_y) {
+        compute \(C = S_{\text{Bob}} \cdot M\)
+    };
+
+    % Alice Decryption
+    \node[comp, anchor=east] (a_comp_M) at ([xshift=-4pt, yshift=-0.95cm] alice.south |- div_y) {
+        compute \(M = S_{\text{Alice}}^{-1} \cdot C\)
+    };
+    \node[comp, anchor=east] (a_rec_m) at ([xshift=-4pt, yshift=-1.32cm] alice.south |- div_y) {
+        recover \(m \mapsfrom M\)
+    };
+
+    % Ciphertext transmission arrow: starts at compute C, ends at compute M
+    \draw[msg] (bob.south |- b_comp_C) -- (alice.south |- a_comp_M) 
+        node[pos=0.25, above, sloped, font=\small] {send \(C\)};
+
+    % Lifelines
+    \coordinate (bottom_line) at ([yshift=-0.18cm] a_rec_m.south);
+    \draw[thick, gray!50] (alice.south) -- (bottom_line -| alice.south);
+    \draw[thick, gray!50] (bob.south)   -- (bottom_line -| bob.south);
+
+    % Brace for Diffie-Hellman Key Exchange (inner)
+    \coordinate (brace_x) at ([xshift=0.25cm] b_comp_S.east);
+    \draw[decorate, decoration={brace, amplitude=4pt}] (brace_x |- alice.north) -- (brace_x |- div_y)
+        node (dh_label) [midway, right=5pt, rotate=-90, font=\scriptsize\bfseries, align=center, anchor=south] {Diffie--Hellman\\Key Exchange};
+
+    % Outer Brace for ElGamal Encryption (entire protocol)
+    \coordinate (elgamal_brace_x) at ([xshift=0.25cm] dh_label.north);
+    \draw[decorate, decoration={brace, amplitude=5pt}] (elgamal_brace_x |- alice.north) -- (elgamal_brace_x |- bottom_line)
+        node[midway, right=5pt, rotate=-90, font=\scriptsize\bfseries, align=center, anchor=south] {ElGamal Encryption};
+\end{tikzpicture}
+\caption{Diffie--Hellman key exchange followed by ElGamal message transmission.}
+\label{fig:dh-elgamal}
+\end{figure}
+
+
+\section*{Efficiency and Security}
+
+Some properties that we would like to have are:
+\begin{itemize}
+    \item
+    \textbf{Honest efficiency}: Alice and Bob should be able to perform the protocol efficiently.
+    This boils down to the ability to compute \(g^k\) (exponentiation) and \(h^{-1}\) (inversion) efficiently for elements in \(G\).
+    While exponentiation can be handled generically, we leave the question of efficient inversion open to be discussed later for specific choices of \(G\).
+    \item 
+    \textbf{Adversarial hardness}: Eve should not be able to efficiently compute \(m\) from \(g, A, B, C\).
+    More generally, Eve should not be able to recover \emph{any} partial information about \(m\).
+\end{itemize}
+
+For exponentiation, instead of using naive repeated multiplication by \(g\) (which takes \(O(k)\) operations), we can compute powers using the \emph{square-and-multiply} algorithm (binary exponentiation) in \(O(\log k)\) group operations.
+
+Given \(g \in G\) and an exponent \(k \geq 0\) of bit-length \(\ell\),
+write \(k\) in binary as \( k = \sum_{i=0}^{\ell-1} k_i 2^i\), where \(k_i \in \{0, 1\}\) are the bits of \(k\).
+Then
+\[
+    \textstyle
+    g^k = g^{\sum_{i=0}^{\ell-1} k_i 2^i} = \prod_{i=0}^{\ell-1} (g^{2^i})^{k_i}.
+\]
+We compute each \(g^{2^i}\) by repeatedly squaring the previous term (\(g^{2^i} = (g^{2^{i-1}})^2\)), and multiply it into our running product whenever \(k_i = 1\).
+This requires at most \(\ell - 1 \approx \log_2 k\) squarings and \(\ell\) multiplications, which is significantly faster than the naive approach.
+
+\begin{algorithm}[H]
+    \begin{algorithmic}[1]
+        \STATE \textbf{Input}: \(g \in G\), exponent \(k \geq 0\)
+        \STATE \textbf{Output}: \(g^k\)
+        \STATE Let \(k = k_0 + k_1 2^1 + \dots + k_{\ell-1} 2^{\ell-1}\) be the binary representation of \(k\) (with \(k_i \in \{0, 1\}\))
+        \STATE Set \(y_0 = g\)
+        \FOR{\(i = 1\) to \(\ell-1\)}
+            \STATE Set \(y_i = y_{i-1}^2\)
+        \ENDFOR
+        \STATE Set \(h \leftarrow e\) \COMMENT{identity of \(G\)}
+        \FOR{\(i = 0\) to \(\ell-1\)}
+            \STATE Set \(h \leftarrow h \cdot y_i^{k_i}\)
+        \ENDFOR
+        \STATE \textbf{return} \(h\)
+    \end{algorithmic}
+    \caption{Square-and-Multiply}
+\end{algorithm}
+
+\section*{The Discrete Logarithm Problem}
+
+One way for Eve to break the scheme is to compute \(a\) from \(A = g^a\) (or \(b\) from \(B = g^b\)).
+This is the discrete logarithm problem.
+
+\begin{definition}[Discrete Logarithm Problem]
+    Let \(G\) be a group and \(g \in G\).
+    The \emph{discrete logarithm problem} (DLP) is:
+    given \(g\) and \(h \in \langle g \rangle\), find an integer \(x\) such that \(g^x = h\).
+\end{definition}
+
+A naive brute-force algorithm tests all possible values of \(x\), taking \(O(|G|)\) operations.
+Generic algorithms (such as baby-step giant-step and Pollard's \(\rho\)) solve the DLP in \(O(\sqrt{|G|})\) operations.
+
+In modern cryptography, \(2^{128}\) operations is considered the baseline work factor for a scheme to be computationally secure (infeasible for classical computers).
+Because generic attacks run in \(O(\sqrt{|G|})\), we require the group (or subgroup) order to satisfy \(|G| \geq 2^{256}\) to achieve a 128-bit security level.
+This creates an \emph{exponential gap}: honest users perform \(O(\log |G|)\) work, while the adversary must perform \(O(\sqrt{|G|})\) work.
+
+\begin{remark}[Sampling Exponents and Randomness Reuse]
+    How do Alice and Bob sample their secret exponents \(a\) and \(b\)?
+    There is no uniform distribution on the infinite set of integers \(\mathbb{Z}\).
+    However, if \(g\) has some finite order \(q = \operatorname{ord}(g)\) (so \(g^q = e\)), exponents only matter modulo \(q\), allowing Alice and Bob to sample \(a, b\) uniformly at random from \(\{0, 1, \dots, q-1\}\).
+
+    Sampling fresh, independent randomness for every message is critical.
+    If Bob encrypts two messages \(M_1\) and \(M_2\) under the same shared secret \(S\) (e.g., reusing the same choice of \(b\)), Eve observes the ciphertexts:
+    \[
+        C_1 = S \cdot M_1 \quad \text{and} \quad C_2 = S \cdot M_2.
+    \]
+    Eve can then compute:
+    \[
+        C_1^{-1} \cdot C_2 = (S \cdot M_1)^{-1} \cdot (S \cdot M_2) = M_1^{-1} \cdot S^{-1} \cdot S \cdot M_2 = M_1^{-1} \cdot M_2,
+    \]
+    which directly eliminates \(S\) and leaks \(M_1^{-1} \cdot M_2\).
+    This allows Eve, for example, to determine whether the two messages are equal (\(C_1^{-1} \cdot C_2 = e \iff M_1 = M_2\)).
+    If Bob sends the same message over multiple days and changes it on a particular day, Eve immediately identifies the exact day the message changed, which can be highly valuable information.
+\end{remark}
+
+\section*{Candidate Groups}
+
+To implement this protocol in practice, we look for a group \(G\) and an element \(g \in G\) where:
+\begin{itemize}
+    \item Group operations (multiplication, inversion, and square-and-multiply) are efficient.
+    \begin{itemize}
+        \item The representation of elements must also be efficient (e.g., as compact bitstrings on a computer), so wanting \(G\) to be finite is not a stretch.
+    \end{itemize}
+    \item The order of \(g\) is large (since, as noted in the remark above, \(\operatorname{ord}(g)\) determines the number of possible choices for \(a\) and \(b\)).
+    \item We can efficiently embed messages into the group and extract them from group elements.
+    \item The discrete logarithm problem is computationally hard.
+\end{itemize}
+
+Let's test some candidate groups.
+
+\begin{example}[Additive Group \((\mathbb{Z}_p, +)\)]
+    Consider the additive group of integers modulo a prime \(p\).
+    Here, the group operation is addition modulo \(p\), so ``exponentiation'' is multiplication:
+    \[
+        g^x \iff x \cdot g \pmod p.
+    \]
+    The DLP is to find \(x\) such that \(x \cdot g \equiv h \pmod p\).
+    This is simply a linear equation:
+    \[
+        x \equiv h \cdot g^{-1} \pmod p,
+    \]
+    which is solved in \(O(\log p)\) steps via the Extended Euclidean Algorithm.
+
+    An attack taking \(O(\log p)\) operations would be acceptable if \(p\) could simply be made astronomically large.
+    However, \(O(\log p)\) is just as efficient as Alice and Bob's own exponentiation.
+    Because there is no computational gap between honest execution and breaking the scheme, choosing \(p\) large enough to make the attack infeasible would also make the protocol impossible for Alice and Bob to carry out.
+    Hence, \((\mathbb{Z}_p, +)\) is completely insecure.
+\end{example}
+
+\begin{example}[Multiplicative Group \(\mathbb{Z}_p^\times\)]
+    Consider the multiplicative group \(\mathbb{Z}_p^\times = \{1, 2, \dots, p-1\}\) modulo a prime \(p\), with order \(|\mathbb{Z}_p^\times| = p - 1\).
+    Here, the group operation is modular multiplication, and exponentiation is \(g^x \pmod p\).
+    
+    The discrete logarithm problem is to find \(x\) such that \(g^x \equiv h \pmod p\).
+    Unlike the additive setting, solving for \(x\) in this modular exponentiation is believed to be computationally hard.
+
+    To maximize the keyspace, we choose \(g\) to be a \emph{primitive root modulo \(p\)} (a generator of \(\mathbb{Z}_p^\times\)), so that \(\operatorname{ord}(g) = p - 1\) and \(\langle g \rangle = \mathbb{Z}_p^\times\).
+\end{example}
+
+Note that regardless of the ambient group \(G\), the key exchange itself always takes place inside the cyclic subgroup \(\langle g \rangle \subseteq G\).
+This roughly means that for the purposes of discrete-logarithm cryptography, it suffices to study cyclic groups.
+
+As it turns out, there are essentially only two good choices of groups for discrete-logarithm cryptography:
+\begin{itemize}
+    \item Multiplicative groups of finite fields (such as \(\mathbb{Z}_p^\times\)).
+    \item Elliptic curves over finite fields.
+\end{itemize}
+We will study both in detail throughout the course.

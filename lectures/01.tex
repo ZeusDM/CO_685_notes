@@ -135,18 +135,18 @@ This requires at most \(\ell - 1 \approx \log_2 k\) squarings and \(\ell\) multi
 
 \begin{algorithm}[H]
     \begin{algorithmic}[1]
-        \STATE \textbf{Input}: \(g \in G\), exponent \(k \geq 0\)
-        \STATE \textbf{Output}: \(g^k\)
-        \STATE Let \(k = k_0 + k_1 2^1 + \dots + k_{\ell-1} 2^{\ell-1}\) be the binary representation of \(k\) (with \(k_i \in \{0, 1\}\))
-        \STATE Set \(y_0 = g\)
-        \FOR{\(i = 1\) to \(\ell-1\)}
-            \STATE Set \(y_i = y_{i-1}^2\)
-        \ENDFOR
-        \STATE Set \(h \leftarrow e\) \COMMENT{identity of \(G\)}
-        \FOR{\(i = 0\) to \(\ell-1\)}
-            \STATE Set \(h \leftarrow h \cdot y_i^{k_i}\)
-        \ENDFOR
-        \STATE \textbf{return} \(h\)
+        \Require \(g \in G\), exponent \(k \geq 0\)
+        \Ensure \(g^k\)
+        \State Let \(k = k_0 + k_1 2^1 + \dots + k_{\ell-1} 2^{\ell-1}\) be the binary representation of \(k\) (with \(k_i \in \{0, 1\}\))
+        \State Set \(y_0 = g\)
+        \For{\(i = 1\) to \(\ell-1\)}
+            \State Set \(y_i = y_{i-1}^2\)
+        \EndFor
+        \State Set \(h \leftarrow e\) \Comment{identity of \(G\)}
+        \For{\(i = 0\) to \(\ell-1\)}
+            \State Set \(h \leftarrow h \cdot y_i^{k_i}\)
+        \EndFor
+        \State \Return \(h\)
     \end{algorithmic}
     \caption{Square-and-Multiply}
 \end{algorithm}

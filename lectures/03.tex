@@ -1,0 +1,93 @@
+\lecture{3}{2026-09-17}{Primitive Roots and Quadratic Residues}
+
+\section*{Primitive Roots}
+
+\begin{definition}
+    Define the \emph{Euler's totient function} \(\phi(n) = |\mathbb{Z}_n^*|\), the number of positive integers less than \(n\) that are coprime to \(n\).
+\end{definition}
+
+\begin{definition}[Order]
+    Let \(G\) be a group.
+    The \emph{order} of an element \(a \in G\) is the smallest positive integer \(d\) such that \(a^d = 1\), denoted \(\operatorname{ord}(a)\).
+\end{definition}
+
+\begin{proposition}
+    Let \(G\) be a finite group and \(a \in G\).  Then,
+    \begin{itemize}
+        \item \(\operatorname{ord}(a) \mid |G|\).
+        \item \(a^k = 1\) if and only if \(\operatorname{ord}(a) \mid k\).
+        \item \(a^i = a^j\) if and only if \(i \equiv j \pmod{\operatorname{ord}(a)}\).
+    \end{itemize}
+\end{proposition}
+
+\begin{proof}
+    The first statement follows from Lagrange's theorem.
+
+    For the second statement, write \(k = q \operatorname{ord}(a) + r\) with \(0 \leq r < \operatorname{ord}(a)\).
+    Then \(a^k = a^{q \operatorname{ord}(a) + r} = (a^{\operatorname{ord}(a)})^q a^r = 1^q a^r = a^r\).
+    Since \(0 \leq r < \operatorname{ord}(a)\), we have \(a^k = 1\) if and only if \(r = 0\), which is equivalent to \(\operatorname{ord}(a) \mid k\).
+
+    The third statement follows from the second: \(a^i = a^j\) if and only if \(a^{i-j} = 1\), which is equivalent to \(\operatorname{ord}(a) \mid (i-j)\), or \(i \equiv j \pmod{\operatorname{ord}(a)}\).
+\end{proof}
+
+\begin{definition}[Primitive Root]
+    An element \(g \in G\) is a \emph{generator} of \(G\) if \(\langle g \rangle = G\), i.e., every element of \(G\) can be expressed as a power of \(g\), i.e., \(\operatorname{ord}(g) = |G|\).
+    The generators of the multiplicative group \(\mathbb{Z}_n^*\) are called \emph{primitive roots of \(n\)}.
+\end{definition}
+
+\begin{theorem}
+    If \(n\) is prime, then there exists a primitive root modulo \(n\).
+\end{theorem}
+
+\begin{proof}
+    For each divisor \(d \mid (n-1)\), let \(\psi(d)\) be the number of elements in \(\mathbb{Z}_n^*\) of order \(d\).
+    If \(\psi(d) > 0\), fix an element \(h\) of order \(d\). The \(d\) distinct powers \(1, h, \dots, h^{d-1}\) satisfy \(x^d = 1\). Since \(x^d - 1\) has at most \(d\) roots over the field \(\mathbb{Z}_n\), these powers comprise all solutions.
+    Among them, \(h^k\) has order \(d\) if and only if \(\gcd(k, d) = 1\), of which there are \(\phi(d)\) choices.
+    Hence, \(\psi(d) = 0\) or \(\psi(d) = \phi(d)\); in either case, \(\psi(d) \leq \phi(d)\) for all \(d\).
+
+    Since each of the \(n-1\) elements of \(\mathbb{Z}_n^*\) has order dividing \(n-1\), and \(\sum_{d \mid n-1} \phi(d) = n-1\),
+    \[
+        n - 1 = \sum_{d \mid n-1} \psi(d) \leq \sum_{d \mid n-1} \phi(d) = n - 1.
+    \]
+    Thus \(\psi(d) = \phi(d)\) for all \(d \mid (n-1)\). In particular, \(\psi(n-1) = \phi(n-1) \geq 1\), so a primitive root \(g\) (of order \(n-1\)) exists.
+\end{proof}
+
+\subsection*{Quadratic Residues}
+
+\begin{definition}
+    Let \(a \in \mathbb{Z}_n^*\). We say that \(a\) is a \emph{quadratic residue modulo \(n\)} if there exists \(x \in \mathbb{Z}_n^*\) such that \(x^2 \equiv a \pmod{n}\).
+    Otherwise, \(a\) is called a \emph{quadratic non-residue modulo \(n\)}.
+    We denote by \(\operatorname{QR}_n\) the set of quadratic residues modulo \(n\) and by \(\overline{\operatorname{QR}}_n\) the set of quadratic non-residues modulo \(n\).
+\end{definition}
+
+Note that a non-unit \(a \in \mathbb{Z}_n \setminus \mathbb{Z}_n^*\) is neither a quadratic residue nor a quadratic non-residue modulo \(n\).
+We are particularly interested in the case when \(n\) is an odd prime \(p\).
+
+\begin{example}
+    For \(p = 13\), we compute
+    \begin{align*}
+        1^2 &\equiv 1, & 2^2 &\equiv 4, & 3^2 &\equiv 9, & 4^2 &\equiv 3, & 5^2 &\equiv 12, & 6^2 &\equiv 10, \\
+        7^2 &\equiv 10, & 8^2 &\equiv 12, & 9^2 &\equiv 3, & 10^2 &\equiv 9, & 11^2 &\equiv 4, & 12^2 &\equiv 1 \pmod{13}.
+    \end{align*}
+    Thus,
+    \[
+        \operatorname{QR}_{13} = \{1, 3, 4, 9, 10, 12\}, \quad \text{and} \quad \overline{\operatorname{QR}}_{13} = \{2, 5, 6, 7, 8, 11\}.
+    \]
+\end{example}
+
+Given a primitive root \(g\) modulo \(p\), characterizing the quadratic residues and non-residues is straightforward.
+
+\begin{theorem}
+    Let \(p\) be an odd prime and let \(g\) be a primitive root modulo \(p\). Then,
+    \begin{align*}
+        \operatorname{QR}_p &= \{g^{n} : n \text{ even}\} = \{1, g^2, g^4, \dots, g^{p-3}\}, \text{ and} \\
+        \overline{\operatorname{QR}}_p &= \{g^{n} : n \text{ odd}\} = \{g, g^3, g^5, \dots, g^{p-2}\}.
+    \end{align*}
+\end{theorem}
+
+\begin{proof}
+    Let \(g^n \in \mathbb{Z}_p^*\).
+    Then \(g^n\) is a quadratic residue modulo \(p\) if and only if there exists \(k \in \mathbb{Z}\) such that \(g^{2k} \equiv g^n \pmod{p}\), which is equivalent to \(2k \equiv n \pmod{p-1}\).
+    Since \(p-1\) is even, this is equivalent to \(n\) being even.
+    Thus, \(g^n\) is a quadratic residue modulo \(p\) if and only if \(n\) is even, and \(g^n\) is a quadratic non-residue modulo \(p\) if and only if \(n\) is odd.
+\end{proof}

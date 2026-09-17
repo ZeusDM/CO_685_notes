@@ -1,4 +1,4 @@
-\lecture{2}{2026-09-15}{Extended Euclidean Algorithm, Primitive Roots}
+\lecture{2}{2026-09-15}{Extended Euclidean Algorithm}
 
 \begin{definition}
     The \emph{ring $\mathbb{Z}_n$ of integers modulo $n$} is the set $\{0, 1, \ldots, n-1\}$ with addition and multiplication defined modulo $n$.
@@ -100,31 +100,3 @@ Note that for some of these operations, there exist better algorithms strictly a
 
 From \Cref{tab:arithmetic_runtimes} and a naive analysis of the Extended Euclidean Algorithm, we have \(O(r)\) iterations, and each iteration requires \(O(r^2)\) time for integer division. Thus the overall runtime is \(O(r^3)\).
 However, a better analysis shows that the overall runtime is actually \(O(r^2)\) \cite{Collins74}; the key idea is that the numbers get smaller as the algorithm progresses, so the later iterations are faster than the earlier ones.
-
-\section*{Primitive Roots}
-
-\begin{definition}[Primitive Root]
-    A \emph{generator} \(g\) of a group \(G\) is an element such that every element of \(G\) can be expressed as a power of \(g\).
-    The generators of the multiplicative group \(\mathbb{Z}_n^*\) are called \emph{primitive roots of \(n\)}.
-\end{definition}
-
-\begin{definition}
-    Define the \emph{Euler's totient function} \(\phi(n) = |\mathbb{Z}_n^*|\), the number of positive integers less than \(n\) that are coprime to \(n\).
-\end{definition}
-
-\begin{theorem}
-    If \(n\) is prime, then there exists a primitive root modulo \(n\).
-\end{theorem}
-
-\begin{proof}
-    For each divisor \(d \mid (n-1)\), let \(\psi(d)\) be the number of elements in \(\mathbb{Z}_n^*\) of order \(d\).
-    If \(\psi(d) > 0\), fix an element \(h\) of order \(d\). The \(d\) distinct powers \(1, h, \dots, h^{d-1}\) satisfy \(x^d = 1\). Since \(x^d - 1\) has at most \(d\) roots over the field \(\mathbb{Z}_n\), these powers comprise all solutions.
-    Among them, \(h^k\) has order \(d\) if and only if \(\gcd(k, d) = 1\), of which there are \(\phi(d)\) choices.
-    Hence, \(\psi(d) = 0\) or \(\psi(d) = \phi(d)\); in either case, \(\psi(d) \leq \phi(d)\) for all \(d\).
-
-    Since each of the \(n-1\) elements of \(\mathbb{Z}_n^*\) has order dividing \(n-1\), and \(\sum_{d \mid n-1} \phi(d) = n-1\),
-    \[
-        n - 1 = \sum_{d \mid n-1} \psi(d) \leq \sum_{d \mid n-1} \phi(d) = n - 1.
-    \]
-    Thus \(\psi(d) = \phi(d)\) for all \(d \mid (n-1)\). In particular, \(\psi(n-1) = \phi(n-1) \geq 1\), so a primitive root \(g\) (of order \(n-1\)) exists.
-\end{proof}

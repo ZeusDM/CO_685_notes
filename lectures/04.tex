@@ -1,0 +1,135 @@
+\lecture{4}{2026-09-22}{}
+
+\begin{definition}
+    The \textit{Legendre symbol} is
+    \[
+        \left( \frac{a}{p} \right) =
+        \begin{cases}
+            0 & \text{if } p \mid a, \\
+            1 & \text{if } a \text{ is a quadratic residue modulo } p, \\
+            -1 & \text{if } a \text{ is a non-quadratic residue modulo } p.
+        \end{cases}
+    \]
+\end{definition}
+
+\begin{theorem}[Euler's Criterion] \label{thm:euler-criterion}
+    Let $p$ be an odd prime and let $a$ be an integer such that $p \nmid a$. Then
+    \[
+        \left( \frac{a}{p} \right) \equiv a^{\frac{p-1}{2}} \pmod{p}.
+    \]
+\end{theorem}
+
+\begin{theorem} \label{thm:unique-subgroup-of-order-d}
+    Let \(p > 2\) be prime.
+    Let \(d \mid p-1\).
+    Then,
+    \begin{enumerate}[label=\textup{(\roman*)}]
+        \item \label{itm:unique-subgroup}
+        \(\mathbb{Z}_p^\times\) has a unique subgroup of order \(d\).
+        \item \label{itm:generator-of-subgroup}
+        \(g^{\frac{p-1}{d}}\) is a generator of this subgroup for any generator \(g\) of \(\mathbb{Z}_p^\times\).
+        \item \label{itm:surjective-homomorphism}
+        The map \(x \mapsto x^{\frac{p-1}{d}}\) is a surjective homomorphism from \(\mathbb{Z}_p^\times\) to this unique subgroup.
+    \end{enumerate}
+\end{theorem}
+
+\begin{proof}
+    Since \(\mathbb{Z}_p^\times = \langle g \rangle\) is cyclic of order \(p-1\), \(g^{\frac{p-1}{d}}\) has order \(d\).
+    Because \(x^d - 1\) has at most \(d\) roots in \(\mathbb{Z}_p\), \(\langle g^{\frac{p-1}{d}} \rangle\) is the unique subgroup of order \(d\), proving \ref{itm:unique-subgroup} and \ref{itm:generator-of-subgroup}.
+    For \ref{itm:surjective-homomorphism}, the homomorphism \(x \mapsto x^{\frac{p-1}{d}}\) maps \(g^k \mapsto (g^{\frac{p-1}{d}})^k\), giving image \(\langle g^{\frac{p-1}{d}} \rangle\).
+\end{proof}
+
+\begin{proof}[Proof of \nameref{thm:euler-criterion}]
+    Suppose \(x = g^{2k + b}\) for some \(k \in \mathbb{Z}\) and \(b \in \{0, 1\}\).
+    Then,
+    \[
+        x^{\frac{p-1}{2}} = g^{(2k + b)\frac{p-1}{2}} = g^{k(p-1) + b\frac{p-1}{2}} \equiv g^{b\frac{p-1}{2}} \pmod{p}.
+    \]
+    If \(b = 0\), we have \(x\) being a quadratic residue modulo \(p\), and \(x^{\frac{p-1}{2}} \equiv 1 \pmod{p}\).
+    If \(b = 1\), we have \(x\) being a non-quadratic residue modulo \(p\), and \(x^{\frac{p-1}{2}} \equiv g^{\frac{p-1}{2}} \equiv -1 \pmod{p}\) since \(g^{\frac{p-1}{2}}\) generates the unique subgroup of order \(2\) in \(\mathbb{Z}_p^\times\) by \Cref{thm:unique-subgroup-of-order-d}\ref{itm:generator-of-subgroup}.
+\end{proof}
+
+\begin{corollary}
+    Let \(p\) be an odd prime and let \(a, b\) be integers. Then,
+    \[
+        \left( \frac{ab}{p} \right) = \left( \frac{a}{p} \right)\left( \frac{b}{p} \right).
+    \]
+\end{corollary}
+
+\begin{proof}
+    By \nameref{thm:euler-criterion}, we have
+    \[
+        \left( \frac{ab}{p} \right) = (ab)^{\frac{p-1}{2}} \equiv a^{\frac{p-1}{2}} b^{\frac{p-1}{2}} \equiv \left(\frac{a}{p}\right)\left(\frac{b}{p}\right) \pmod{p},
+    \]
+    and equality holds since both sides are in \(\{-1, 0, 1\}\).
+\end{proof}
+
+\begin{proposition}
+    For an odd prime \(p\), the number \(-1\) is a quadratic residue modulo \(p\) if and only if \(p \equiv 1 \pmod{4}\).
+\end{proposition}
+
+\begin{proof}
+    By \nameref{thm:euler-criterion}, we have
+    \[
+        \left( \frac{-1}{p} \right) \equiv (-1)^{\frac{p-1}{2}} \equiv
+        \begin{cases}
+            1 & \text{if } p \equiv 1 \pmod{4}, \\
+            -1 & \text{if } p \equiv 3 \pmod{4}.
+        \end{cases} \qedhere
+    \]
+\end{proof}
+
+\section*{Modular Roots}
+
+Suppose \(\gcd(k, p-1) = 1\). 
+Given \(a \in \mathbb{Z}_p^\times\), we want to find \(b \in \mathbb{Z}_p^\times\) such that \(b^k \equiv a \pmod{p}\).
+
+One way to do this is as follows.
+Compute \(x := k^{-1} \pmod{p-1}\) using the Extended Euclidean Algorithm.
+Then, \(b := a^x\) is a solution since
+\[
+    b^k \equiv (a^x)^k \equiv a^{xk} \equiv a^{1 + m(p-1)} \equiv a \pmod{p}.
+\]
+
+What about if \(\gcd(k, p-1) > 1\)?
+One interesting \(k = 2\) and \(p\) is odd.
+For a solution to exist, we also assume \(a \in \operatorname{QR}_p\).
+
+If \(p \equiv 3 \pmod{4}\), then \(b := a^{\frac{p+1}{4}}\) is a solution since
+\[
+    b^2 \equiv (a^{\frac{p+1}{4}})^2 \equiv a^{\frac{p+1}{2}} \equiv a^{\frac{p-1}{2}} a \equiv 1 \cdot a \equiv a \pmod{p}.
+\]
+
+If \(p \equiv 1 \pmod{4}\), let \(p - 1 = 2^e r\) with \(e \geq 2\) and \(r\) odd. Then, we perform \Cref{alg:modular-square-root} to find a solution \(b\) to \(b^2 \equiv a \pmod{p}\).
+
+\begin{algorithm}[htbp]
+    \caption{Finding a square root modulo \(p\) for \(p \equiv 1 \pmod{4}\)}
+    \label{alg:modular-square-root}
+    \begin{algorithmic}[1]
+        \Require An odd prime \(p\) with \(p \equiv 1 \pmod{4}\) and \(a \in \operatorname{QR}_p\)
+        \Ensure A solution \(b\) to \(b^2 \equiv a \pmod{p}\)
+        \State Set \(b \gets a^{\frac{r+1}{2}} \pmod{p}\) 
+        \Comment{check \((b^2 a^{-1})^{2^e} \equiv 1 \pmod{p}\)}
+        \State Find a quadratic non-residue \(x \in \overline{\operatorname{QR}}_p\)
+        \Comment{e.g., by trial and error}
+        \State Set \(c \gets x^r \pmod{p}\)
+        \Comment{then \(\operatorname{ord}(c) = 2^e\)}
+        \While{\(i \gets \log_2(\operatorname{ord}(b^2a^{-1})) \neq 0\)}
+            \Comment{compute by repeatedly squaring}
+            \State Set \(b \gets bc^{2^{e-i-1}} \pmod{p}\)
+        \EndWhile
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{proposition}
+    If \(\operatorname{ord}(b^2a^{-1}) = 2^i\) and \(\operatorname{ord}(c) = 2^e\),
+    then for \(b' = b c^{2^{e-i-1}}\) we have \(\operatorname{ord}(b'^2 a^{-1}) \leq 2^{i-1}\).
+\end{proposition}
+
+\begin{proof}
+    \begin{equation*}
+        (b'^2 a^{-1})^{2^{i-1}} = (b^2 a^{-1})^{2^{i-1}} (c^{2^{e-i}})^{2^{i-1}} = (b^2 a^{-1})^{2^{i-1}} c^{2^{e-1}} \equiv (-1) (-1) \equiv 1 \pmod{p},
+    \end{equation*}
+\end{proof}
+
+The complexity of this algorithm \(O(\log^4(p))\).

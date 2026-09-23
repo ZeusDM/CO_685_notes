@@ -8,13 +8,19 @@
 
 \usepackage{import}
 \usepackage{tikz}
+\usepackage{pgffor}
 
 \usetikzlibrary{arrows.meta, positioning, calc, decorations.pathreplacing}
 
 \usepackage[mode=tex]{standalone}
 
+\usepackage{xcolor}
+\usepackage[colorlinks, allcolors=blue!50!black, hypertexnames=false]{hyperref}
+\usepackage{caption}
+
 \usepackage{amsmath, amssymb, amsthm, mathtools, stmaryrd}
 \usepackage{algorithm, algpseudocode}
+\usepackage[nameinlink,noabbrev,sort&compress]{cleveref}
 
 \usepackage{booktabs}
 
@@ -27,18 +33,18 @@
 \newtheorem{example}[theorem]{Example}
 \newtheorem{remark}[theorem]{Remark}
 
+\AddToHook{env/proposition/begin}{\crefalias{theorem}{proposition}}
+\AddToHook{env/lemma/begin}{\crefalias{theorem}{lemma}}
+\AddToHook{env/corollary/begin}{\crefalias{theorem}{corollary}}
+\AddToHook{env/definition/begin}{\crefalias{theorem}{definition}}
+\AddToHook{env/example/begin}{\crefalias{theorem}{example}}
+\AddToHook{env/remark/begin}{\crefalias{theorem}{remark}}
+
 \usepackage{fmtcount}
 
 \usepackage{mlmodern}
 \usepackage[T1]{fontenc}
 \usepackage{microtype}
-
-\usepackage{pgffor}
-
-\usepackage{xcolor}
-\usepackage[colorlinks, allcolors=blue!50!black]{hyperref}
-
-\usepackage{cleveref}
 
 \usepackage{enumitem}
 \setlist{nosep}

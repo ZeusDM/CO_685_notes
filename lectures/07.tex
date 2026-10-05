@@ -1,0 +1,217 @@
+\lecture{7}{2026-10-01}{Discrete Logarithm Algorithms}
+
+Let \(G\) be a cyclic group (written multiplicatively) and let \(g \in G\) have known order \(n = \operatorname{ord}(g)\).
+Given an element \(h \in \langle g \rangle\), the \emph{discrete logarithm problem} (DLP) is to find the unique integer \(x \in \mathbb{Z}_n\) such that
+\[
+    g^x = h.
+\]
+In public-key protocols such as Diffie--Hellman, \(G\) is selected so that \(n\) is large, ruling out naive brute-force search which requires \(O(n)\) group operations.
+However, a large order alone does not guarantee that the discrete logarithm problem is hard.
+We examine generic algorithms that solve the discrete logarithm problem in an arbitrary group in \(O(\sqrt{n})\) group operations.
+
+\section*{Baby-Step Giant-Step}
+
+The baby-step giant-step algorithm, introduced by Shanks~\cite{Shanks1971}, is a deterministic time-space tradeoff that computes discrete logarithms in \(O(\sqrt{n})\) group operations using \(O(\sqrt{n})\) memory.
+
+Let \(m = \lceil \sqrt{n} \rceil\).
+By the division algorithm, the unknown exponent \(x \in \{0, \dots, n-1\}\) can be expressed uniquely as
+\[
+    x = qm + r, \quad \text{where } 0 \leq r < m \text{ and } 0 \leq q < m.
+\]
+The relation \(g^x = h\) can then be rewritten as
+\[
+    g^{qm + r} = h \iff g^r = h \cdot (g^{-m})^q.
+\]
+The algorithm proceeds in two stages:
+\begin{enumerate}
+    \item \textbf{Baby steps:} Compute and store the values \(g^r\) for \(r \in \{0, 1, \dots, m-1\}\) in a table indexed by group elements, mapping \(g^r \mapsto r\).
+    \item \textbf{Giant steps:} Precompute \(u = g^{-m} = (g^m)^{-1}\). For \(q = 0, 1, \dots, m-1\), compute \(\gamma = h \cdot u^q\) and query the table to check if \(\gamma\) matches any baby step.
+\end{enumerate}
+Once a match \(g^r = h \cdot u^q\) is found, the exponent is given by
+\[
+    x = qm + r.
+\]
+
+\begin{algorithm}[H]
+    \caption{Baby-Step Giant-Step Algorithm}\label{alg:bsgs}
+    \begin{algorithmic}[1]
+        \Input element \(g \in G\) of order \(n\), and \(h \in \langle g \rangle\)
+        \Output integer \(x \in \{0, \dots, n-1\}\) such that \(g^x = h\)
+        \State set \(m \gets \lceil \sqrt{n} \rceil\)
+        \State initialize a hash table \(T\)
+        \State set \(\gamma \gets 1\)
+        \For{\(r = 0\) \textbf{to} \(m - 1\)} \Comment{baby steps}
+            \State \(T[\gamma] \gets r\)
+            \State \(\gamma \gets \gamma \cdot g\)
+        \EndFor
+        \State set \(u \gets (g^m)^{-1}\)
+        \State set \(\gamma \gets h\)
+        \For{\(q = 0\) \textbf{to} \(m - 1\)} \Comment{giant steps}
+            \If{\(\gamma \in T\)}
+                \State \Return \(q \cdot m + T[\gamma]\)
+            \EndIf
+            \State \(\gamma \gets \gamma \cdot u\)
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{remark}[Complexity]
+    The algorithm computes \(m\) baby steps and at most \(m\) giant steps, requiring \(2m = O(\sqrt{n})\) group operations.
+    Using a hash table with \(O(1)\) lookup, the overall time complexity is \(O(\sqrt{n})\) group operations.
+    The primary drawback is the space complexity: storing \(m\) group elements requires \(O(\sqrt{n})\) memory, which is prohibitive for cryptographically large parameters.
+\end{remark}
+
+\section*{Pollard's Rho Algorithm}
+
+Pollard's rho algorithm~\cite{Pollard1978} achieves the same \(O(\sqrt{n})\) running time as baby-step giant-step, but requires only \(O(1)\) memory.
+It works in any finite cyclic group \(G\).
+
+The idea is to generate group elements of the form \(g^a h^b\) with known exponents \(a, b \in \mathbb{Z}_n\), until finding two distinct exponent pairs \((a_1, b_1) \not\equiv (a_2, b_2) \pmod{n}\) that collide:
+\[
+    g^{a_1} h^{b_1} = g^{a_2} h^{b_2}.
+\]
+Writing \(h = g^x\), this gives
+\[
+    a_1 + b_1 x \equiv a_2 + b_2 x \pmod{n} \iff (b_1 - b_2) x \equiv a_2 - a_1 \pmod{n}.
+\]
+If \(\gcd(b_1 - b_2, n) = 1\), the discrete logarithm is uniquely determined by
+\[
+    x \equiv (a_2 - a_1)(b_1 - b_2)^{-1} \pmod{n}.
+\]
+If \(\gcd(b_1 - b_2, n) = d > 1\), this yields \(d\) candidate solutions modulo \(n\), or the algorithm can be restarted with different random starting values.
+
+\subsection*{Collision Finding and the Birthday Paradox}
+
+Finding a collision among elements of the form \(g^a h^b\) can be framed as finding a collision in an iterated mapping on a finite set.
+
+\begin{lemma}[Birthday Collision]\label{lem:birthday-collision}
+    Let \(S\) be a finite set of size \(n\), and let \(x_1, \dots, x_k\) be drawn uniformly at random from \(S\) with replacement.
+    The probability of finding at least one collision is at least \(1 - e^{-k(k-1)/(2n)}\).
+    In particular, for \(k = \lceil \sqrt{2n\lambda} \rceil\), a collision occurs with probability at least \(1 - e^{-\lambda}\).
+\end{lemma}
+
+\begin{proof}
+    The probability that all \(k\) samples are distinct is
+    \[
+        p_k = \prod_{j=1}^{k-1} \left( 1 - \frac{j}{n} \right).
+    \]
+    Using the inequality \(1 - t \leq e^{-t}\) for all \(t \in \mathbb{R}\),
+    \[
+        p_k \leq \prod_{j=1}^{k-1} e^{-j/n} = \exp\left( -\sum_{j=1}^{k-1} \frac{j}{n} \right) = \exp\left( -\frac{k(k-1)}{2n} \right).
+    \]
+    The probability of at least one collision is therefore
+    \[
+        1 - p_k \geq 1 - \exp\left( -\frac{k(k-1)}{2n} \right).
+    \]
+    Setting \(k = \lceil \sqrt{2n\lambda} \rceil\) yields \(1 - p_k \geq 1 - e^{-\lambda}\).
+\end{proof}
+
+Hence, iterating a pseudorandom mapping on a set of size \(n\) yields a duplicate after \(O(\sqrt{n})\) steps.
+
+\subsection*{Floyd's Cycle-Finding Algorithm}
+
+Storing all visited elements to detect duplicates would require \(O(\sqrt{n})\) space.
+Floyd's cycle-finding algorithm (the ``tortoise and hare'' algorithm) detects cycles in \(O(1)\) space.
+
+Let \(f \colon S \to S\) be a mapping on a finite set \(S\).
+Starting from \(x_0 \in S\), the sequence \(x_{i+1} = f(x_i)\) must eventually cycle.
+The sequence consists of a tail of length \(L \geq 0\) and a cycle of length \(R \geq 1\), forming the shape of the letter \(\rho\):
+\[
+    x_{i+R} = x_i \quad \text{for all } i \geq L.
+\]
+By the birthday paradox, \(L, R = O(\sqrt{n})\) on average for a random mapping.
+
+To detect the cycle without storing past values, maintain two pointers initialized at \(x_0\):
+\begin{align*}
+    \text{tortoise: } & x_{i+1} = f(x_i), \\
+    \text{hare: }     & y_{i+1} = f(f(y_i)) = f^2(y_i).
+\end{align*}
+At step \(i\), \(x_i = f^i(x_0)\) and \(y_i = f^{2i}(x_0) = x_{2i}\).
+
+\begin{lemma}\label{lem:floyd-cycle}
+    There exists an index \(i \leq L + R = O(\sqrt{n})\) such that \(x_i = y_i\).
+\end{lemma}
+
+\begin{proof}
+    The equality \(x_i = x_{2i}\) holds if and only if both indices lie in the cycle (\(i \geq L\)) and \(2i \equiv i \pmod{R}\), i.e., \(i \equiv 0 \pmod{R}\).
+    The smallest multiple of \(R\) that is at least \(L\) is \(i = R \lceil L/R \rceil \leq L + R\).
+    Because \(L, R = O(\sqrt{n})\), this occurs in \(O(\sqrt{n})\) steps.
+\end{proof}
+
+For an arbitrary mapping \(f\), once \(x_i = x_{2i}\) is found, a collision \(u \neq v\) with \(f(u) = f(v)\) can be located by resetting \(u \gets x_0\) and \(v \gets x_i\), and stepping both forward by one step until \(f(u) = f(v)\).
+
+\begin{algorithm}[H]
+    \caption{Floyd's Cycle-Finding Collision Search}\label{alg:floyd-collision}
+    \begin{algorithmic}[1]
+        \Input function \(f \colon S \to S\) and initial value \(x_0 \in S\)
+        \Output collision pair \(u \neq v\) such that \(f(u) = f(v)\)
+        \State set \(x \gets x_0\), \(y \gets x_0\)
+        \Repeat \Comment{find cycle match \(x_i = x_{2i}\)}
+            \State \(x \gets f(x)\)
+            \State \(y \gets f(f(y))\)
+        \Until{\(x = y\)}
+        \State set \(u \gets x_0\), \(v \gets x\)
+        \While{\(f(u) \neq f(v)\)} \Comment{find entry into the cycle}
+            \State \(u \gets f(u)\)
+            \State \(v \gets f(v)\)
+        \EndWhile
+        \State \Return \((u, v)\)
+    \end{algorithmic}
+\end{algorithm}
+
+\subsection*{Discrete Logarithm via Pollard's Rho}
+
+To solve the discrete logarithm problem, we construct a pseudorandom walk on \(G\) where each element is tracked as \(g^a h^b\).
+
+We partition \(G\) into three disjoint subsets \(S_1, S_2, S_3\) of roughly equal size (e.g., using a hash function or the integer representation modulo \(3\)).
+Define the transition function \(f \colon G \to G\) by
+\[
+    f(y) =
+    \begin{cases}
+        y \cdot g & \text{if } y \in S_1, \\
+        y \cdot h & \text{if } y \in S_2, \\
+        y^2       & \text{if } y \in S_3.
+    \end{cases}
+\]
+Each step requires \(O(1)\) group operations.
+If \(y = g^a h^b\), the updated element \(f(y) = g^{a'} h^{b'}\) has exponents \((a', b') \in \mathbb{Z}_n \times \mathbb{Z}_n\) given by
+\[
+    (a', b') =
+    \begin{cases}
+        (a + 1 \pmod{n}, \; b)          & \text{if } y \in S_1, \\
+        (a, \; b + 1 \pmod{n})          & \text{if } y \in S_2, \\
+        (2a \pmod{n}, \; 2b \pmod{n})    & \text{if } y \in S_3.
+    \end{cases}
+\]
+
+Starting from an initial element \(x_0 = g^{a_0} h^{b_0}\) (e.g., \(a_0 \in_R \mathbb{Z}_n\) and \(b_0 = 0\)), we apply Floyd's cycle-finding to the triples \((y, a, b)\):
+a tortoise \((x, a_x, b_x)\) taking one step and a hare \((y, a_y, b_y)\) taking two steps.
+When \(x = y\), we obtain
+\[
+    g^{a_x} h^{b_x} = g^{a_y} h^{b_y} \implies (b_x - b_y) x \equiv a_y - a_x \pmod{n}.
+\]
+Unlike the generic search in \Cref{alg:floyd-collision}, no second search loop is needed: the cycle match \(x_i = x_{2i}\) already gives two expressions for the same group element with different exponents.
+
+\begin{algorithm}[H]
+    \caption{Pollard's Rho Algorithm for Discrete Logarithm}\label{alg:pollard-rho}
+    \begin{algorithmic}[1]
+        \Input element \(g \in G\) of order \(n\), and \(h \in \langle g \rangle\)
+        \Output integer \(x \in \{0, \dots, n-1\}\) such that \(g^x = h\), or \textup{failure}
+        \State choose random \(a_0 \in \mathbb{Z}_n\) and set \(x \gets g^{a_0}\), \(y \gets g^{a_0}\)
+        \State set \(a_x \gets a_0, b_x \gets 0\) and \(a_y \gets a_0, b_y \gets 0\)
+        \Repeat
+            \State set \((x, a_x, b_x) \gets f(x, a_x, b_x)\) \Comment{tortoise advances 1 step}
+            \State set \((y, a_y, b_y) \gets f(f(y, a_y, b_y))\) \Comment{hare advances 2 steps}
+        \Until{\(x = y\)}
+        \If{\(\gcd(b_x - b_y, n) = 1\)}
+            \State \Return \((a_y - a_x)(b_x - b_y)^{-1} \pmod{n}\)
+        \Else
+            \State \Return \textup{failure} \Comment{restart with different \(a_0\)}
+        \EndIf
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{remark}[Complexity and Heuristics]
+    Under the heuristic assumption that the step function \(f\) behaves like a random mapping, the sequence cycles in \(O(\sqrt{n})\) expected steps.
+    Since each transition performs \(O(1)\) group operations and requires storing only the tortoise and hare states, Pollard's rho algorithm computes discrete logarithms in heuristic time \(O(\sqrt{n})\) using \(O(1)\) memory.
+\end{remark}

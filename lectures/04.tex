@@ -124,10 +124,10 @@ Repeatedly multiply \(b\) by an appropriate power of \(c\) to decrease the order
         \State set \(c = x^r \pmod{p}\) \Comment{\(\operatorname{ord}(c) = 2^e\)}
         \State set \(b \gets a^{\frac{r+1}{2}} \pmod{p}\) \Comment{\(\operatorname{ord}(b^2 a^{-1}) \mid 2^{e-1}\)}
         \While{\(b^2 a^{-1} \not\equiv 1 \pmod{p}\)} \label{alg:modular-square-root:outer-loop}
-            \State set \(i \gets 1\) and \(t \gets (b^2 a^{-1})^2 \pmod{p}\)
-            \While{\(t \not\equiv 1 \pmod{p}\)} \label{alg:modular-square-root:inner-loop}
+            \State set \(i \gets 0\) and \(t \gets b^2 a^{-1} \pmod{p}\)
+            \Repeat \label{alg:modular-square-root:inner-loop}
                 \State increment \(i \gets i + 1\) and square \(t \gets t^2 \pmod{p}\)
-            \EndWhile \Comment{\(2^i = \operatorname{ord}(b^2 a^{-1})\)}
+            \Until{\(t \equiv 1 \pmod{p}\)} \Comment{\(2^i = \operatorname{ord}(b^2 a^{-1})\)}
             \State set \(b \gets b \cdot c^{2^{e-i-1}} \pmod{p}\) \label{alg:modular-square-root:update-b} \Comment{\(\operatorname{ord}(b^2 a^{-1}) \leq 2^{i-1}\)}
         \EndWhile
     \end{algorithmic}
@@ -145,7 +145,7 @@ Repeatedly multiply \(b\) by an appropriate power of \(c\) to decrease the order
     Initially, \((b^2 a^{-1})^{2^{e-1}} \equiv (a^r)^{2^{e-1}} = a^{\frac{p-1}{2}} \equiv 1 \pmod{p}\), so \(\operatorname{ord}(b^2 a^{-1})\) is a power of \(2\) dividing \(2^{e-1}\).
 
     Assume that when the outer while loop in line~\ref{alg:modular-square-root:outer-loop} is reached, \(\operatorname{ord}(b^2 a^{-1})\) is a power of \(2\); which we checked above for its first iteration.
-    Then, the inner while loop in line~\ref{alg:modular-square-root:inner-loop} guarantees that \(2^i = \operatorname{ord}(b^2 a^{-1})\) when it terminates.
+    Then, the inner repeat loop in line~\ref{alg:modular-square-root:inner-loop} guarantees that \(2^i = \operatorname{ord}(b^2 a^{-1})\) when it terminates.
 
     Updating \(b' = b \cdot c^{2^{e-i-1}}\) in line~\ref{alg:modular-square-root:update-b}, both \((b^2 a^{-1})^{2^{i-1}}\) and \(c^{2^{e-1}}\) have order \(2\) in \(\mathbb{Z}_p^\times\), so both equal \(-1\). Thus,
     \[

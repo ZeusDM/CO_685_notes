@@ -184,7 +184,7 @@ If \(y = g^a h^b\), the updated element \(f(y) = g^{a'} h^{b'}\) has exponents \
     \end{cases}
 \]
 
-Starting from an initial element \(x_0 = g^{a_0} h^{b_0}\) (e.g., \(a_0 \in_R \mathbb{Z}_n\) and \(b_0 = 0\)), we apply Floyd's cycle-finding to the triples \((y, a, b)\):
+Starting from an initial element \(x_0 = g^{a_0} h^{b_0}\) (for instance, with \(a_0 \in \mathbb{Z}_n\) chosen uniformly at random and \(b_0 = 0\)), we apply Floyd's cycle-finding to the triples \((y, a, b)\):
 a tortoise \((x, a_x, b_x)\) taking one step and a hare \((y, a_y, b_y)\) taking two steps.
 When \(x = y\), we obtain
 \[

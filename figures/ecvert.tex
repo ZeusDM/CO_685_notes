@@ -1,0 +1,16 @@
+% ecvert.tex
+%
+% Graphical representation of vertical tangent (order 2 point) on
+% E: y^2 = x^3 - x + 1 over the real numbers
+%
+\psset{unit=0.95cm}
+\begin{pspicture}(-2,-2.5)(2.5,2.5)
+    \psaxes[ticks=none,labels=none]{->}(0,0)(-2,-2.5)(2.5,2.5)
+    \psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{-1.3247}{2.0}{x x mul x mul x sub 1 add sqrt}
+    \psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{-1.3247}{2.0}{x x mul x mul x sub 1 add sqrt neg}
+    % Vertical tangent line at x = -1.3247
+    \psline[linewidth=0.8pt](-1.3247,-2.0)(-1.3247,2.0)
+    % Point P
+    \rput(-1.3247,0){{\color{red} $\bullet$}}
+    \rput[r](-1.55,0.35){$P$}
+\end{pspicture}

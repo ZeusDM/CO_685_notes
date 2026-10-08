@@ -1,0 +1,31 @@
+% ecdouble.tex
+%
+% Graphical representation of point doubling on the elliptic curve 
+% E: y^2 = x^3 - x over the real numbers
+%
+% Author: Zeus Dantas e Moura (edited from Peter Schwabe)
+% Public domain
+
+\psset{unit=0.95cm} 
+\begin{pspicture}(-2,-2.5)(2,2.5) 
+\psaxes[ticks=none,labels=none]{->}(0,0)(-2,-2.5)(2,2.5)  
+
+\psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{1}{2.0}{x x mul x mul x sub sqrt neg}
+\psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{-1}{0}{x x mul x mul x sub sqrt neg}
+\psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{1}{2.0}{x x mul x mul x sub sqrt}
+\psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{-1}{0}{x x mul x mul x sub sqrt}
+
+\psplot[plotstyle=curve]{-2}{2}{x 0.3933 mul 0.8728 add}
+
+\rput(-0.7,0.5975){{\color{red} $\bullet$}}
+\rput(-0.7,0.98){$P$}
+
+\rput(1.55469,1.4843){{\color{red} $\bullet$}}
+\rput[r](1.32,1.80){$R$}
+
+\psline[linestyle=dashed,dash=5pt 5pt](1.55469,1.4843)(1.55469,-1.4843)
+\rput(1.55469,-1.4843){{\color{red} $\bullet$}}
+\rput[l](1.72,-1.4843){$P + P$}
+\end{pspicture}  
+
+

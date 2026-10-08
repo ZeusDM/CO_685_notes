@@ -1,0 +1,20 @@
+% ecinflect.tex
+%
+% Graphical representation of inflection point (order 3 point) on
+% E: y^2 = x^3 - x + 1 over the real numbers
+%
+\psset{unit=0.95cm}
+\begin{pspicture}(-2,-2.5)(2.5,2.5)
+    \psaxes[ticks=none,labels=none]{->}(0,0)(-2,-2.5)(2.5,2.5)
+    \psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{-1.3247}{2.0}{x x mul x mul x sub 1 add sqrt}
+    \psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{-1.3247}{2.0}{x x mul x mul x sub 1 add sqrt neg}
+    % Tangent line at inflection point: y = -0.5112 * x + 1.0003
+    \psplot[plotstyle=curve,linewidth=0.8pt]{-1.8}{2.0}{x -0.5112 mul 1.0003 add}
+    % Point P
+    \rput(0.0871,0.9558){{\color{red} $\bullet$}}
+    \rput(0.25,1.45){$P$}
+    % Point -P reflected across x-axis
+    \psline[linestyle=dashed,dash=4pt 4pt](0.0871,0.9558)(0.0871,-0.9558)
+    \rput(0.0871,-0.9558){{\color{red} $\bullet$}}
+    \rput[l](0.22,-1.35){$-P$}
+\end{pspicture}

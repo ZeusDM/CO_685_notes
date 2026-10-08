@@ -1,0 +1,35 @@
+% ecadd.tex
+%
+% Graphical representation of point addition on the elliptic curve 
+% E: y^2 = x^3 - x over the real numbers
+%
+% Author: Zeus Dantas e Moura (edited from Peter Schwabe)
+% Public domain
+
+\psset{unit=0.95cm} 
+\begin{pspicture}(-2,-2.5)(2,2.5) 
+\psaxes[ticks=none,labels=none]{->}(0,0)(-2,-2.5)(2,2.5)  
+
+\psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{1}{2.0}{x x mul x mul x sub sqrt neg}
+\psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{-1}{0}{x x mul x mul x sub sqrt neg}
+\psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{1}{2.0}{x x mul x mul x sub sqrt}
+\psplot[plotstyle=curve,linecolor=blue,linewidth=1.2pt]{-1}{0}{x x mul x mul x sub sqrt}
+
+
+\psplot[plotstyle=curve]{-2}{2}{x 0.9102 mul 0.4057 add}
+
+\rput(-0.1,0.3146){{\color{red} $\bullet$}}
+\rput[l](0.22,0.28){$Q$}
+\rput(-0.9,-0.4135){{\color{red} $\bullet$}}
+\rput[r](-1.08,-0.25){$P$}
+
+\rput(1.82812,2.0697){{\color{red} $\bullet$}}
+\rput[r](1.65,2.3){$R$}
+
+\psline[linestyle=dashed,dash=5pt 5pt](1.82812,2.0697)(1.82812,-2.0697)
+\rput(1.82812,-2.0697){{\color{red} $\bullet$}}
+\rput[l](1.98,-2.0697){$P + Q$}
+
+\end{pspicture}
+
+

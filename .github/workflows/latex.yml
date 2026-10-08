@@ -22,7 +22,7 @@ jobs:
 
       - name: Build PDF
         run: |
-          latexmk -pdf notes.tex
+          latexmk -lualatex -interaction=nonstopmode notes.tex
           mv notes.pdf CO_685_notes.pdf
 
       - name: Upload PDF Artifact

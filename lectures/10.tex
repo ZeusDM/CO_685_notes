@@ -1,0 +1,94 @@
+\lecture{10}{2026-10-20}{Elliptic Curves, Algebraically}
+
+While we defined the group operation on an elliptic curve geometrically, we can also define it algebraically.
+
+Given an elliptic curve \(E\), we denote by \(E(K)\) the set of points on \(E\) with coordinates in a field \(K\), together with the point at infinity \(\infty\).
+
+\begin{definition}[Group Operation on an Elliptic Curve, Algebraically]
+    Let \(K\) be a field, and let \(E\) be an elliptic curve defined over \(K\) given by the Weierstrass equation
+    \[
+        E \colon y^2 = x^3 + Ax + B.
+    \]
+    For any two points \(P\) and \(Q\) on \(E\), we define their sum \(P + Q\) as follows:
+    \begin{enumerate}
+        \item If \(P = \infty\), then \(P + Q = Q\). If \(Q = \infty\), then \(P + Q = P\).
+        \item If \(P = (x_1, y_1)\) and \(Q = (x_2, y_2)\) with \(x_1 = x_2\) and \(y_1 = -y_2\), then \(P + Q = \infty\).
+        \item If \(P = (x_1, y_1)\) and \(Q = (x_2, y_2)\) with \(x_1 \neq x_2\) or \(y_1 \neq -y_2\), we define \(P + Q = (x_3, y_3)\) where
+        \begin{align*}
+            m &=
+            \begin{cases}
+                \left(y_2 - y_1\right) / \left(x_2 - x_1\right) & \text{if } P \neq Q, \\
+                \left(3x_1^2 + A\right) / \left(2y_1\right) & \text{if } P = Q,
+            \end{cases} \\
+            x_3 &= m^2 - x_1 - x_2, \\
+            y_3 &= m(x_1 - x_3) - y_1.
+        \end{align*}
+    \end{enumerate}
+\end{definition}
+
+% somethign something on how to pick (A, B, p)
+
+% theorems by hasse, lenstra, and schoof for sampling.
+
+% another (bad) way is to choose A = 0 and p + 1 = 2p'. sam will tell us why it's bad later.
+
+\begin{definition}[Torsion]
+    The \emph{\(n\)-torsion subgroup} of \(E(K)\) is 
+    \[
+        E(K)[n] = \{ P \in E(K) : nP = \infty \}.
+    \]
+\end{definition}
+
+\begin{example}
+    For \(n = 2\), for any point \(P = (x, y) \in E(K)\), we have \(2P = \infty\) if and only if \(P = -P\). This occurs if and only if \(y = 0\). Thus, the 2-torsion points are the points on the curve where the \(y\)-coordinate is zero, along with the point at infinity.
+
+    How many \(x\) satisfy \(0 = x^3 + Ax + B\)? The polynomial \(x^3 + Ax + B\) has either \(0\), \(1\), or \(3\) roots in \(K\). Therefore, the 2-torsion subgroup \(E(K)[2]\) can have either \(1\), \(2\), or \(4\) points, depending on the number of roots of the polynomial in the field \(K\), and therefore it is isomorphic to either \(\{0\}\), \(\mathbb{Z}_2\), or \(\mathbb{Z}_2 \times \mathbb{Z}_2\).
+\end{example}
+
+\begin{theorem}
+    Let \(p\) be a prime, and let \(n\) not be divisible by \(p\). Then
+    \(E(\overline{\mathbb{F}_p})[n] \cong \mathbb{Z}_n \times \mathbb{Z}_n\).
+\end{theorem}
+
+\begin{corollary}
+    Let \(p\) be a prime. Then \(E(\mathbb{F}_p) = \mathbb{Z}_{m_1} \times \mathbb{Z}_{m_2}\) for some \(m_1, m_2\).
+\end{corollary}
+
+% --- I couldn't keep track
+
+\begin{definition}[Pairing]
+    A \emph{pairing} is a non-degenerate bilinear map
+    \[
+        e \colon E(\mathbb{F}_p)[n] \times E(\mathbb{F}_p)[n] \to \mu_n,
+    \]
+    where \(\mu_n\) is a subgroup of \(\mathbb{F}_{p^k}\).
+\end{definition}
+
+Here, bilinear means that for any \(P, Q, R \in E(\mathbb{F}_p)[n]\) and \(a, b \in \mathbb{Z}\), we have
+\[
+    e(aP + bQ, R) = e(P, R)^a \cdot e(Q, R)^b \quad \text{and} \quad e(P, aQ + bR) = e(P, Q)^a \cdot e(P, R)^b.
+\]
+
+One cool property is that
+\[
+    e(iP, jQ) = e(P, Q)^{ij} \quad \text{for any } i, j \in \mathbb{Z}.
+\]
+
+Three cool things:
+
+Check equality of discrete log:
+Given \(P_1, Q_1 = x_1 P_1\) and \(P_2, Q_2 = x_2 P_2\), we can check if \(x_1 = x_2\) by checking if \(e(P_1, Q_2) = e(Q_1, P_2)\), since
+\[
+    e(P_1, Q_2) = e(P_1, x_2 P_2) = e(P_1, P_2)^{x_2} \text{ and } e(Q_1, P_2) = e(x_1 P_1, P_2) = e(P_1, P_2)^{x_1}.
+\]
+
+Second cool thing.
+Triple diffie helman.
+Parameter is a point \(P\), Alice, Bob, and Charlie each have a private key \(a, b, c\) and a public key \(A = aP, B = bP, C = cP\). They can compute a shared secret \(e(A, B)^c = e(A, C)^b = e(B, C)^a = e(P, P)^{abc}\).
+
+Third cool thing.
+Subexponential DLOG attacks.
+Given an elliptic curve DLOG problem, \(P, Q = xP\), we can compute \(e(P, P)\) and \(e(P, Q) = e(P, P)^x\). Then we can solve the DLOG problem in \(\mathbb{F}_{p^k}\) using subexponential algorithms like index calculus.
+
+For this attack to not work, we need \(k\) to be large enough.
+But it would also be nice if \(k\) was small enough so that we could use the other two interesting properties.

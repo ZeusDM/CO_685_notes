@@ -1,0 +1,110 @@
+\lecture{11}{2026-10-22}{Picking Curves}
+
+\begin{example}[P-256, NIST curve]
+    The NIST P-256 curve (also known as secp256r1) is defined by the short Weierstrass equation
+    \[
+        y^2 = x^3 - 3x + b \quad \text{over } \mathbb{F}_p,
+    \]
+    where \(p = 2^{256} - 2^{224} + 2^{192} + 2^{96} - 1\) and \(b\) is a specific constant.
+
+    The prime \(p\) is a generalized Mersenne prime: its binary expansion is sparse, allowing modular reduction to be computed efficiently via word shifts and additions on 32-bit registers.
+    The coefficient \(a = -3\) is chosen for performance: in Jacobian projective coordinates \([X : Y : Z]\), the tangent slope formula in point doubling involves \(3X^2 + aZ^4\); when \(a = -3\), this factors as \(3(X - Z^2)(X + Z^2)\), saving several modular multiplications.
+
+    In fact, NIST/NSA didn't provide \(b\) directly, but instead provided a seed value \(s\) and defined \(b\) as the first 32 bytes of the SHA-1 hash of \(s\).
+    The logic is that, even if NIST/NSA figured out a way to pick a "bad" \(b\) that would allow them to break the discrete logarithm problem on this curve, they wouldn't be able to engineer a specific seed \(s\) that hashes to that vulnerable curve (by preimage resistance of SHA-1), unless such weak curves are dense among all elliptic curves.
+\end{example}
+
+\begin{example}[Curve25519]
+    Introduced by Bernstein~\cite{Bernstein2006}, Curve25519 is defined in \emph{Montgomery form} by the equation
+    \[
+        y^2 = x^3 + 486662x^2 + x \quad \text{over } \mathbb{F}_p,
+    \]
+    where \(p = 2^{255} - 19\).
+
+    The group order is \(|E(\mathbb{F}_p)| = 8q\), where
+    \[
+        q = 2^{252} + 27742317777372353535851937790883648493
+    \]
+    is a large prime.
+    Because the curve has cofactor \(h = 8\), protocols clear the cofactor (e.g., clamping the private key by setting the lowest 3 bits to 0) to ensure scalar multiplications remain in the large prime-order subgroup.
+\end{example}
+
+\section*{Invalid Point Attacks}
+
+Recall the group law on an elliptic curve in short Weierstrass form \(y^2 = x^3 + ax + b\).
+Given points \(P_1 = (x_1, y_1)\) and \(P_2 = (x_2, y_2)\), the sum \(P_3 = P_1 + P_2 = (x_3, y_3)\) is computed via
+\[
+    \lambda =
+    \begin{cases}
+        \frac{y_2 - y_1}{x_2 - x_1} & \text{if } P_1 \neq P_2, \\[0.5em]
+        \frac{3x_1^2 + a}{2y_1} & \text{if } P_1 = P_2,
+    \end{cases}
+    \qquad
+    \begin{aligned}
+        x_3 &= \lambda^2 - x_1 - x_2, \\
+        y_3 &= \lambda(x_1 - x_3) - y_1.
+    \end{aligned}
+\]
+Notice that the addition and doubling formulas do not use the constant \(b\) of the curve at all.
+
+\subsection*{The Attack}
+
+In a Diffie--Hellman exchange, an honest party computes a scalar multiple \(k P\) of an incoming point \(P = (x, y)\).
+If an attacker sends an invalid point \(P = (x, y) \in \mathbb{F}_p \times \mathbb{F}_p\) that does \emph{not} lie on the agreed curve \(E\), an honest party blindly applying the group law will nevertheless compute the coordinates of \(k P\).
+Because \(b\) does not appear in the addition formulas, this computation actually takes place on a different elliptic curve:
+\[
+    E': y^2 = x^3 + ax + b', \quad \text{where } b' = y^2 - x^3 - ax \pmod p.
+\]
+If the attacker carefully selects \((x, y)\) such that \(E'(\mathbb{F}_p)\) has smooth order (or contains a small prime factor \(r\)), the attacker can choose \(P\) of order \(r\) in \(E'(\mathbb{F}_p)\).
+When the honest party returns or uses \(k P\), the attacker can determine \(k \pmod r\) using Pohlig--Hellman.
+Repeating this with points on several such curves allows the attacker to reconstruct the entire private key \(k\) via the Chinese Remainder Theorem~\cite{BiehlMeyerMueller2000}.
+
+\subsection*{Point Validation and Patents}
+
+An obvious countermeasure is to perform \emph{point validation}: whenever a point \((x, y)\) is received, verify that
+\[
+    y^2 \equiv x^3 + ax + b \pmod p.
+\]
+However, this check is easy for implementers to omit.
+More problematically, Certicom (later acquired by BlackBerry) held a patent on elliptic curve public key validation (US Patent 6,563,928), meaning implementers risked patent infringement and royalties simply by validating that an incoming point lies on the curve.
+
+\subsection*{Curve25519: $x$-Only Arithmetic and Twist Security}
+
+To completely eliminate point validation and avoid patent issues, Curve25519 uses Montgomery form and \emph{\(x\)-only arithmetic} via the Montgomery ladder.
+Because \(P = (x, y)\) and \(-P = (x, -y)\) share the same \(x\)-coordinate, the \(x\)-coordinate of \(k P\) can be computed using only the \(x\)-coordinate of \(P\) and the curve parameter \(A\), without ever referencing or calculating \(y\).
+In X25519 key exchange, parties only transmit the 32-byte \(x\)-coordinate.
+
+Could an attacker still mount an invalid point attack by sending an \(x\)-coordinate that does not correspond to any valid point on the curve?
+For any field element \(x \in \mathbb{F}_p\), the value \(x^3 + Ax^2 + x\) is either:
+\begin{enumerate}
+    \item A quadratic residue in \(\mathbb{F}_p\), in which case \(y^2 = x^3 + Ax^2 + x\) has solutions \(y \in \mathbb{F}_p\), meaning \(x\) is the \(x\)-coordinate of a point on \(E(\mathbb{F}_p)\);
+    \item Zero, corresponding to a 2-torsion point on \(E(\mathbb{F}_p)\); or
+    \item A quadratic non-residue in \(\mathbb{F}_p\).
+\end{enumerate}
+In the third case, \(x\) does not correspond to a point in \(E(\mathbb{F}_p)\).
+However, fixing any quadratic non-residue \(d \in \mathbb{F}_p^\times\), the quotient \((x^3 + Ax^2 + x)/d\) is a non-zero quadratic residue in \(\mathbb{F}_p\).
+Thus, there exists \(y \in \mathbb{F}_p\) satisfying
+\[
+    E^t: d y^2 = x^3 + Ax^2 + x \quad \text{over } \mathbb{F}_p.
+\]
+The curve \(E^t\) is called the \emph{quadratic twist} of \(E\).
+(Over the quadratic extension \(\mathbb{F}_{p^2}\), substituting \(y' = y \sqrt{d}\) maps \(E^t\) isomorphically to \(E\), but they are not isomorphic over \(\mathbb{F}_p\).)
+
+This means \textbf{every field element \(x \in \mathbb{F}_p\) is the \(x\)-coordinate of a valid point on either the curve \(E(\mathbb{F}_p)\) or its quadratic twist \(E^t(\mathbb{F}_p)\)}.
+Moreover, the algebraic relations of the Montgomery ladder depend exclusively on \(x\) and \(A\), so the exact same ladder formulas compute scalar multiplication whether \(x\) lies on \(E(\mathbb{F}_p)\) or on \(E^t(\mathbb{F}_p)\).
+
+If an attacker sends an \(x\) on the twist, the honest party's computation implicitly takes place in the twist group \(E^t(\mathbb{F}_p)\).
+If \(E^t(\mathbb{F}_p)\) had smooth order, the attacker could recover \(k\) using Pohlig--Hellman on the twist.
+By Hasse's Theorem, if \(|E(\mathbb{F}_p)| = p + 1 - t\), the quadratic twist has order
+\[
+    |E^t(\mathbb{F}_p)| = p + 1 + t.
+\]
+To protect against this attack, the curve must satisfy \emph{twist security}: its quadratic twist must also have a cryptographically secure group order (a small cofactor times a large prime).
+
+Curve25519 was designed specifically to be twist-secure:
+\[
+    |E(\mathbb{F}_p)| = 8q, \qquad |E^t(\mathbb{F}_p)| = 4q',
+\]
+where \(q \approx 2^{252}\) and \(q' = 2^{253} - 55484635554744707071703875581767296995\) are both primes.
+The parameter \(A = 486662\) was chosen as the smallest integer with \(A \equiv 2 \pmod 4\) such that both \(E\) and \(E^t\) have near-prime order and \((A - 2)/4 = 121665\) is small for computational efficiency.
+As a result, any 32-byte input can be accepted safely: whether it lies on the curve or its twist, the discrete logarithm problem remains equally intractable, rendering invalid point attacks impossible without any need for point validation.

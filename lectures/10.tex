@@ -214,6 +214,16 @@ We leave the construction of pairings to the next lecture, but we note that the 
     \]
 \end{proposition}
 
+\begin{theorem}[Tate--Lichtenbaum Pairing]\label{thm:tate-pairing}
+    Let \(E\) be an elliptic curve over \(\mathbb{F}_p\) and let \(n\) be an integer coprime to \(p\).
+    Let \(k\) be such that \(n \mid (p^k - 1)\).
+    Then there exists a non-degenerate bilinear pairing
+    \[
+        e \colon E[n] \times E[n] \to \mu_n \subseteq \mathbb{F}_{p^k}^\times
+    \]
+    that is computable in polynomial time in \(\log n\) and \(k \log p\).
+\end{theorem}
+
 \begin{proof}
     The multiplicative group \(\mathbb{F}_{p^k}^\times\) is cyclic of order \(p^k - 1\).
     A cyclic group of order \(M\) contains a subgroup of order \(n\) if and only if \(n \mid M\).

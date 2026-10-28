@@ -1,0 +1,144 @@
+\lecture{12}{2026-10-27}{Post-Quantum Cryptography and Learning with Errors}
+
+\section*{Quantum Attacks and the Hidden Subgroup Problem}
+
+Classical discrete logarithm algorithms (Pollard's \(\rho\), Pohlig--Hellman, Index Calculus) require exponential or subexponential time.
+However, quantum algorithms can solve discrete logarithms in polynomial time.
+
+\begin{definition}[Abelian Hidden Subgroup Problem]
+    Let \(G\) be a finitely generated abelian group and \(S\) a finite set.
+    Suppose we are given oracle access to a function \(f \colon G \to S\) with the property that there exists a subgroup \(H \le G\) such that
+    \[
+        f(x) = f(y) \iff x - y \in H \iff x + H = y + H.
+    \]
+    The \emph{Abelian Hidden Subgroup Problem} (HSP) asks to determine a generating set for the hidden subgroup \(H\).
+\end{definition}
+
+Shor's algorithm~\cite{Shor1994} solves the abelian hidden subgroup problem in polynomial time on a quantum computer.
+
+\begin{proposition}[Discrete Logarithm as an Abelian HSP]
+    Let \(G = \langle P \rangle\) be a cyclic group of prime order \(q\) (such as a prime-order subgroup of \(E(\mathbb{F}_p)\) or \(\mathbb{Z}_p^\times\)).
+    Let \(Q = xP\) for an unknown scalar \(x \in \mathbb{Z}_q\).
+    The discrete logarithm problem can be cast as an abelian HSP over \(\mathbb{Z}_q \times \mathbb{Z}_q\).
+\end{proposition}
+
+\begin{proof}
+    Define \(f \colon \mathbb{Z}_q \times \mathbb{Z}_q \to \langle P \rangle\) by
+    \[
+        f(a, b) = aP + bQ.
+    \]
+    Since \(Q = xP\), we have \(f(a, b) = (a + bx)P\).
+    Then \(f(a_1, b_1) = f(a_2, b_2)\) if and only if
+    \begin{align*}
+        (a_1 + b_1 x)P = (a_2 + b_2 x)P
+        &\iff a_1 + b_1 x \equiv a_2 + b_2 x \pmod q \\
+        &\iff a_1 - a_2 \equiv -x(b_1 - b_2) \pmod q \\
+        &\iff (a_1 - a_2, b_1 - b_2) \in \langle (-x, 1) \rangle.
+    \end{align*}
+    Thus, \(f\) hides the subgroup \(H = \langle (-x, 1) \rangle \le \mathbb{Z}_q \times \mathbb{Z}_q\).
+    Finding a non-zero element in \(H\) immediately reveals the secret discrete logarithm \(x\).
+\end{proof}
+
+Consequently, Shor's algorithm completely breaks both finite field and elliptic curve Diffie--Hellman key exchange.
+This motivates constructing cryptographic primitives whose security relies on problems resistant to quantum attacks.
+
+\section*{A First Attempt: Linear Algebra Diffie--Hellman}
+
+As an alternative to group-based Diffie--Hellman, one might consider using matrix multiplication over a finite field \(\mathbb{Z}_q\).
+
+\paragraph*{Protocol}
+Fix public parameters: dimensions \(m, n \in \mathbb{N}\), a prime \(q\), and a uniformly random matrix \(A \in \mathbb{Z}_q^{m \times n}\).
+\begin{enumerate}
+    \item Alice samples a secret vector \(s_A \in \mathbb{Z}_q^n\), computes \(u_A = A s_A \in \mathbb{Z}_q^m\), and sends \(u_A\) to Bob.
+    \item Bob samples a secret vector \(s_B \in \mathbb{Z}_q^m\), computes \(u_B^T = s_B^T A \in \mathbb{Z}_q^{1 \times n}\), and sends \(u_B^T\) to Alice.
+    \item Both parties compute the shared secret:
+    \[
+        s_B^T u_A = s_B^T A s_A = u_B^T s_A \in \mathbb{Z}_q.
+    \]
+\end{enumerate}
+
+\paragraph*{Insecurity}
+This scheme is completely broken.
+An eavesdropper observes \(A\) and \(u_A = A s_A\).
+Finding Alice's secret \(s_A\) amounts to solving a system of \(m\) linear equations in \(n\) variables over \(\mathbb{Z}_q\).
+Gaussian elimination solves this in \(O(m n^2)\) field operations, breaking the scheme in polynomial time classically.
+
+\section*{Learning with Errors (LWE)}
+
+To prevent Gaussian elimination from recovering the secret vectors, Regev~\cite{Regev2005} introduced the idea of perturbing the linear systems with small random noise.
+
+\subsection*{Attempted Key Exchange with Noise}
+
+In the noisy setting:
+\begin{itemize}
+    \item Alice samples a small secret \(s_A \in \mathbb{Z}_q^n\) and a small error vector \(e_A \in \mathbb{Z}_q^m\), sending
+    \[
+        b_A = A s_A + e_A.
+    \]
+    \item Bob samples a small secret \(s_B \in \mathbb{Z}_q^m\) and a small error vector \(e_B \in \mathbb{Z}_q^n\), sending
+    \[
+        b_B^T = s_B^T A + e_B^T.
+    \]
+\end{itemize}
+Then Alice computes
+\[
+    s_B^T b_A = s_B^T A s_A + s_B^T e_A
+\]
+and Bob computes
+\[
+    b_B^T s_A = s_B^T A s_A + e_B^T s_A.
+\]
+This does not directly yield a key exchange protocol because the two parties' computed values differ by the error term \(s_B^T e_A - e_B^T s_A\).
+However, because this error term is small, we can use this mechanism to construct a public-key message encryption scheme instead.
+
+\subsection*{Public-Key Encryption from LWE}
+
+\paragraph*{Key Generation}
+Alice samples a uniformly random matrix \(A \in \mathbb{Z}_q^{m \times n}\), a small secret vector \(s_A \in \mathbb{Z}_q^n\), and a small error vector \(e_A \in \mathbb{Z}_q^m\).
+She publishes the public key
+\[
+    \mathsf{pk} = (A, b_A = A s_A + e_A),
+\]
+and keeps \(\mathsf{sk} = s_A\) as her secret key.
+
+\paragraph*{Encryption}
+To encrypt a single-bit message \(m \in \{0, 1\}\), Bob samples a small secret vector \(s_B \in \mathbb{Z}_q^m\), a small error vector \(e_B \in \mathbb{Z}_q^n\), and a small error scalar \(e'_B \in \mathbb{Z}_q\).
+He computes
+\[
+    c_1 = s_B^T A + e_B^T \in \mathbb{Z}_q^{1 \times n}, \qquad c_2 = s_B^T b_A + e'_B + \lfloor q/2 \rfloor m \in \mathbb{Z}_q,
+\]
+and sends the ciphertext \(c = (c_1, c_2)\) to Alice.
+
+\paragraph*{Decryption}
+Using her secret key \(s_A\), Alice computes
+\begin{align*}
+    c_2 - c_1 s_A &= \left(s_B^T b_A + e'_B + \lfloor q/2 \rfloor m\right) - \left(s_B^T A + e_B^T\right) s_A \\
+    &= s_B^T (A s_A + e_A) + e'_B + \lfloor q/2 \rfloor m - s_B^T A s_A - e_B^T s_A \\
+    &= \lfloor q/2 \rfloor m + \underbrace{(s_B^T e_A - e_B^T s_A + e'_B)}_{\text{total error } E} \pmod q.
+\end{align*}
+Alice recovers the message up to the small error term \(E = s_B^T e_A - e_B^T s_A + e'_B\).
+If \(m = 0\), the result is \(E \approx 0 \pmod q\); if \(m = 1\), the result is \(\lfloor q/2 \rfloor + E \approx q/2 \pmod q\).
+Alice can thus reliably distinguish between \(m = 0\) and \(m = 1\) by checking which value is closer:
+\[
+    m' =
+    \begin{cases}
+        0 & \text{if } |c_2 - c_1 s_A|_q < q/4, \\
+        1 & \text{otherwise}.
+    \end{cases}
+\]
+Decryption succeeds correctly whenever the total noise satisfies \(|E|_q < q/4\).
+
+Notice that this basic scheme only encrypts a single bit at a time; in the next lecture we will see how to improve this.
+
+\paragraph*{A caveat: What does ``small'' mean?}
+Elements of \(\mathbb{Z}_q\) are modular residues.
+To speak of an error being ``small'', we identify elements with their centered representatives in the interval \([-\lfloor q/2 \rfloor, \lfloor q/2 \rfloor]\) and define the centered modular absolute value
+\[
+    |x|_q = \min_{k \in \mathbb{Z}} |x + kq|.
+\]
+In practice, error coordinates are sampled from small distributions such as:
+\begin{itemize}
+    \item \textbf{Uniform bounded:} each coordinate is drawn uniformly from \([-\beta, \beta] \cap \mathbb{Z}\) for \(\beta \ll q\);
+    \item \textbf{Centered Binomial Distribution (CBD):} with parameter \(k\), sampled as \(\sum_{j=1}^k a_j - \sum_{j=1}^k b_j\) for independent uniform bits \(a_j, b_j \in \{0, 1\}\);
+    \item \textbf{Discrete Gaussian:} where each coordinate is sampled with probability proportional to \(\exp(-|x|_q^2 / (2\sigma^2))\).
+\end{itemize}

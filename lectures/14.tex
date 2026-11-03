@@ -1,0 +1,122 @@
+\lecture{14}{2026-11-03}{Fast Polynomial Multiplication via the Number Theoretic Transform}
+
+In Ring-LWE, we work in the polynomial quotient ring
+\[
+    R_q = \mathbb{Z}_q[x] / (x^d + 1), \quad \text{where } d = 2^k.
+\]
+Cryptographic operations require computing noisy products \(a(x)s(x) + e(x) \in R_q\).
+Naive polynomial multiplication modulo \(x^d + 1\) requires \(O(d^2 \log^2 q)\) bit operations.
+To accelerate this to \(O(d \log d \log^2 q)\), we use the Number Theoretic Transform (NTT).
+
+Choose the prime modulus \(q\) such that \(2d \mid (q - 1)\), i.e., \(q - 1 = 2^{k+1} f\) for some integer \(f \ge 1\).
+Since \(\mathbb{Z}_q^\times\) is cyclic of order \(q - 1\), there exists a primitive \(2^{k+1}\)-th root of unity \(r \in \mathbb{Z}_q\).
+Then \(r^{2^k} = r^d \equiv -1 \pmod q\), so the odd powers \(r, r^3, \dots, r^{2^{k+1}-1}\) are distinct roots of \(x^d + 1\), yielding
+\[
+    x^d + 1 = \prod_{i=0}^{d-1} \left( x - r^{2i+1} \right) \in \mathbb{Z}_q[x].
+\]
+By the Chinese Remainder Theorem, evaluation at each root gives the ring isomorphism
+\begin{align*}
+    R_q = \mathbb{Z}_q[x] / (x^{2^k} + 1)
+    &\cong \prod_{i=0}^{2^k-1} \mathbb{Z}_q[x] / (x - r^{2i+1}) \cong \mathbb{Z}_q^{2^k}, \\
+    a(x) &\xmapsto{\quad} \left( a(r), a(r^3), \dots, a(r^{2^{k+1}-1}) \right).
+\end{align*}
+We define the forward transform as this vector of \(2^k\) evaluations:
+\[
+    \mathsf{NTT}(a, r, k) = \left( a(r), a(r^3), \dots, a(r^{2^{k+1}-1}) \right) \in \mathbb{Z}_q^{2^k}.
+\]
+
+To compute this efficiently, write \(a(x) = \sum_{j=0}^{2^k - 1} a_j x^j = a_E(x^2) + x a_O(x^2)\), where
+\[
+    a_E(y) = \sum_{j=0}^{2^{k-1} - 1} a_{2j} y^j, \qquad a_O(y) = \sum_{j=0}^{2^{k-1} - 1} a_{2j+1} y^j.
+\]
+Evaluating at an odd power \(r^{2t+1}\) gives
+\[
+    a(r^{2t+1}) = a_E\left( (r^2)^{2t+1} \right) + r^{2t+1} a_O\left( (r^2)^{2t+1} \right).
+\]
+Since \(r^2\) has order \(2^k\), the evaluations of \(a_E\) and \(a_O\) at odd powers of \(r^2\) correspond exactly to the half-size transforms \(\hat{a}_E = \mathsf{NTT}(a_E, r^2, k-1)\) and \(\hat{a}_O = \mathsf{NTT}(a_O, r^2, k-1)\).
+Using the indexing \(\hat{a}[t] = a(r^{2t+1})\), \(\hat{a}_E[t] = a_E((r^2)^{2t+1})\), and \(\hat{a}_O[t] = a_O((r^2)^{2t+1})\), the periodicity \((r^2)^{2(t + 2^{k-1}) + 1} = (r^2)^{2t+1}\) and the sign flip \(r^{2(t + 2^{k-1}) + 1} = -r^{2t+1}\) yield the butterfly relations
+\begin{align*}
+    \hat{a}[t]           &= \hat{a}_E[t] + r^{2t+1} \hat{a}_O[t] \pmod q, \\
+    \hat{a}[t + 2^{k-1}] &= \hat{a}_E[t] - r^{2t+1} \hat{a}_O[t] \pmod q,
+\end{align*}
+for each \(t \in \{0, 1, \dots, 2^{k-1} - 1\}\).
+
+This recursive divide-and-conquer strategy is formalized in \Cref{alg:ntt}.
+
+\begin{algorithm}[H]
+    \caption{Fast Number Theoretic Transform (Forward NTT)}\label{alg:ntt}
+    \begin{algorithmic}[1]
+        \Require \(a(x) = \sum_{j=0}^{2^k - 1} a_j x^j \in \mathbb{Z}_q[x] / (x^{2^k} + 1)\), primitive \(2^{k+1}\)-th root of unity \(r \in \mathbb{Z}_q\), integer \(k \ge 0\)
+        \Ensure Vector \(\hat{a} = \left( a(r), a(r^3), \dots, a(r^{2^{k+1}-1}) \right) \in \mathbb{Z}_q^{2^k}\)
+        \If{\(k = 0\)}
+            \State \Return \(\left( a_0 \right)\)
+        \EndIf
+        \State \(a_E(y) \gets \sum_{j=0}^{2^{k-1} - 1} a_{2j} y^j\)
+        \State \(a_O(y) \gets \sum_{j=0}^{2^{k-1} - 1} a_{2j+1} y^j\)
+        \State \(\hat{a}_E \gets \mathsf{NTT}(a_E, r^2, k - 1)\)
+        \State \(\hat{a}_O \gets \mathsf{NTT}(a_O, r^2, k - 1)\)
+        \For{\(t \gets 0\) \textbf{to} \(2^{k-1} - 1\)}
+            \State \(\hat{a}[t] \gets \hat{a}_E[t] + r^{2t+1} \hat{a}_O[t] \pmod q\)
+            \State \(\hat{a}[t + 2^{k-1}] \gets \hat{a}_E[t] - r^{2t+1} \hat{a}_O[t] \pmod q\)
+        \EndFor
+        \State \Return \(\hat{a}\)
+    \end{algorithmic}
+\end{algorithm}
+
+Let \(M_k\) be the number of ring operations in \(\mathbb{Z}_q\) performed by \Cref{alg:ntt} on a polynomial of degree \(2^k - 1\).
+The recurrence is
+\[
+    M_k = 2M_{k-1} + 2 \cdot 2^{k-1}, \quad M_0 = 0,
+\]
+which solves to \(M_k = k 2^k = d \log_2 d\).
+Therefore, the forward NTT runs in \(O(d \log d)\) operations in \(\mathbb{Z}_q\), or \(O(d \log d \log^2 q)\) bit operations.
+
+\section*{Ring-LWE Encryption in the NTT Domain}
+
+Since the NTT is a ring isomorphism, polynomial multiplication in \(R_q\) corresponds to pointwise (Hadamard) multiplication \(\circ\) in the NTT domain \(\hat{R}_q \cong \mathbb{Z}_q^d\).
+This yields the accelerated Ring-LWE scheme:
+\begin{itemize}
+    \item \(\mathsf{KeyGen}()\): Sample \(\hat{a} \xleftarrow{\$} \hat{R}_q\) directly in the NTT domain, and small polynomials \(s, e \leftarrow \chi^d\).
+    Compute \(\hat{s} = \mathsf{NTT}(s)\), \(\hat{e} = \mathsf{NTT}(e)\), and
+    \[
+        \hat{b} = \hat{a} \circ \hat{s} + \hat{e} \in \hat{R}_q.
+    \]
+    Output \(\mathsf{pk} = (\hat{a}, \hat{b})\) and \(\mathsf{sk} = \hat{s}\).
+    \item \(\mathsf{Enc}(\mathsf{pk}, m(x))\): Sample small polynomials \(r, e', e'' \leftarrow \chi^d\).
+    Compute \(\hat{r} = \mathsf{NTT}(r)\), \(\hat{e}' = \mathsf{NTT}(e')\), \(\hat{e}'' = \mathsf{NTT}(e'')\), and \(\hat{m} = \mathsf{NTT}(m(x) \lfloor q/2 \rfloor)\).
+    Compute
+    \[
+        \hat{c}_1 = \hat{a} \circ \hat{r} + \hat{e}' \in \hat{R}_q, \qquad \hat{c}_2 = \hat{b} \circ \hat{r} + \hat{e}'' + \hat{m} \in \hat{R}_q.
+    \]
+    Output the ciphertext \(\hat{c} = (\hat{c}_1, \hat{c}_2)\).
+    \item \(\mathsf{Dec}(\mathsf{sk}, \hat{c})\): Compute \(\hat{w} = \hat{c}_2 - \hat{c}_1 \circ \hat{s} \in \hat{R}_q\), and invert \(w(x) = \mathsf{NTT}^{-1}(\hat{w}) \in R_q\).
+    Decode each bit \(m_i = 0\) if \(|w_i|_q < q/4\), and \(1\) otherwise.
+\end{itemize}
+All polynomial multiplications now run in \(O(d \log d)\) ring operations instead of \(O(d^2)\).
+
+\section*{Module-LWE}
+
+While Ring-LWE is efficient, scaling security by increasing the degree \(d\) requires choosing a new modulus \(q\) (to satisfy \(2d \mid q - 1\)) and reconfiguring the NTT.
+\emph{Module-LWE} solves this by replacing scalar polynomials with vectors and matrices of polynomials over a fixed ring \(R_q = \mathbb{Z}_q[x] / (x^d + 1)\).
+
+\begin{definition}[Module-LWE Problem]
+    Let \(R_q = \mathbb{Z}_q[x] / (x^d + 1)\).
+    Given a uniformly random matrix \(A \xleftarrow{\$} R_q^{k \times \ell}\), a small secret vector \(s \leftarrow \chi_s^\ell\), and a small error vector \(e \leftarrow \chi_e^k\), the \emph{Module-LWE} problem asks to recover \(s\) from
+    \[
+        (A, \, b = As + e \in R_q^k).
+    \]
+\end{definition}
+
+Setting \(k = \ell = 1\) recovers Ring-LWE, while setting \(d = 1\) recovers standard LWE.
+By applying the NTT componentwise, all matrix-vector products remain fast.
+
+\begin{example}[Kyber / ML-KEM]
+    Kyber fixes \(d = 256\) and \(q = 3329\), and scales security by varying the matrix dimension \(k = \ell \in \{2, 3, 4\}\):
+    \begin{itemize}
+        \item Kyber-512 (NIST Level 1): \(k = 2\);
+        \item Kyber-768 (NIST Level 3): \(k = 3\);
+        \item Kyber-1024 (NIST Level 5): \(k = 4\).
+    \end{itemize}
+    Secrets and errors are sampled from centered binomial distributions.
+    This allows a single, fixed NTT implementation to support all three security levels.
+\end{example}

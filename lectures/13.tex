@@ -1,0 +1,135 @@
+\lecture{13}{2026-10-29}{Ring Learning with Errors}
+
+Recall from the previous lecture that the basic LWE public-key encryption scheme encrypts only a single bit per ciphertext, which is impractical.
+Its key generation, encryption, and decryption costs for encrypting \(1\) bit are summarized in \Cref{tab:lwe-efficiency}.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{@{}llcc@{}}
+        \toprule
+        \textbf{Algorithm} & \textbf{Computation} & \textbf{Object} & \textbf{Size (bits)} \\
+        \midrule
+        \(\mathsf{KeyGen}\) & \(O(m n \log^2 q)\) & Public Key \(\mathsf{pk}\) & \(m n \log_2 q + m \log_2 q\) \\
+        \(\mathsf{Enc}\)    & \(O(m n \log^2 q)\) & Ciphertext \(c\)       & \((n + 1) \log_2 q\) \\
+        \(\mathsf{Dec}\)    & \(O(n \log^2 q)\)   & Secret Key \(\mathsf{sk}\) & \(n \log_2 q\) \\
+        \bottomrule
+    \end{tabular}
+    \caption{Asymptotic complexities and data sizes for standard LWE bit encryption.}
+    \label{tab:lwe-efficiency}
+\end{table}
+
+This design has two significant practical drawbacks:
+\begin{enumerate}
+    \item \textbf{Public key size:} The matrix \(A \in \mathbb{Z}_q^{m \times n}\) dominates \(\mathsf{pk}\). In practice, we can compress \(A\) by replacing it with a short random 256-bit seed \(\rho\) and expanding \(A = \mathsf{PRF}(\rho)\) pseudo-randomly via a hash function (as in Kyber).
+    \item \textbf{Ciphertext bandwidth:} Transmitting a single bit \(m \in \{0, 1\}\) requires sending an \(n\)-dimensional vector \(c_1\) and a scalar \(c_2\), demanding \((n + 1) \log_2 q\) bits of ciphertext per bit of message.
+\end{enumerate}
+
+To encrypt multiple bits simultaneously without scaling up matrix sizes, Lyubashevsky, Peikert, and Regev introduced \emph{Ring-LWE}.
+Instead of working with vectors over \(\mathbb{Z}_q^n\), we work in the polynomial quotient ring
+\[
+    R_q = \mathbb{Z}_q[x] / (x^d + 1).
+\]
+Any polynomial \(s(x) = \sum_{i=0}^{d-1} s_i x^i \in R_q\) corresponds bijectively to the coefficient vector \(s = (s_0, s_1, \dots, s_{d-1})^T \in \mathbb{Z}_q^d\).
+
+Fix the dimension \(d\) (typically a power of \(2\)) and modulus \(q\).
+Messages are now polynomials \(m(x) = \sum_{i=0}^{d-1} m_i x^i \in R_q\) encoding \(d\) bits \(m_i \in \{0, 1\}\).
+\begin{itemize}
+    \item \(\mathsf{KeyGen}()\): Sample a uniform polynomial \(a(x) \xleftarrow{\$} R_q\) and small polynomials \(s(x), e(x) \leftarrow \chi^d\).
+    Compute \(b(x) = a(x)s(x) + e(x) \in R_q\).
+    Output \(\mathsf{pk} = (a(x), b(x))\) and \(\mathsf{sk} = s(x)\).
+    \item \(\mathsf{Enc}(\mathsf{pk}, m(x))\): Sample short polynomials \(r(x), e'(x), e''(x) \leftarrow \chi^d\). Compute
+    \[
+        c_1(x) = r(x)a(x) + e'(x) \in R_q, \qquad c_2(x) = r(x)b(x) + e''(x) + m(x) \lfloor q/2 \rfloor \in R_q.
+    \]
+    Output the ciphertext \(c(x) = (c_1(x), c_2(x))\).
+    \item \(\mathsf{Dec}(\mathsf{sk}, c)\): Compute the polynomial
+    \[
+        \tilde{m}(x) = c_2(x) - c_1(x) s(x) \in R_q.
+    \]
+    For each coefficient \(\tilde{m}_i\) of \(\tilde{m}(x)\), decode
+    \[
+        m_i =
+        \begin{cases}
+            0 & \text{if } |\tilde{m}_i|_q < q/4, \\
+            1 & \text{otherwise}.
+        \end{cases}
+    \]
+    Output \(m(x) = \sum_{i=0}^{d-1} m_i x^i\).
+\end{itemize}
+
+Substituting the expressions for \(c_1(x)\) and \(c_2(x)\):
+\begin{align*}
+    \tilde{m}(x) &= c_2(x) - c_1(x) s(x) \\
+                 &= \left( r(x)b(x) + e''(x) + m(x) \lfloor q/2 \rfloor \right) - \left( r(x)a(x) + e'(x) \right) s(x) \\
+                 &= r(x)\bigl( a(x)s(x) + e(x) \bigr) + e''(x) + m(x) \lfloor q/2 \rfloor - r(x)a(x)s(x) - e'(x)s(x) \\
+                 &= m(x) \lfloor q/2 \rfloor + \underbrace{\left( r(x)e(x) + e''(x) - e'(x)s(x) \right)}_{\text{noise polynomial } E(x)} \pmod{x^d + 1, q}.
+\end{align*}
+Decryption succeeds on all \(d\) bits simultaneously as long as \(\|E(x)\|_\infty < q/4\).
+
+Multiplying by \(x\) in \(R_q = \mathbb{Z}_q[x] / (x^d + 1)\) shifts coefficients and negates the highest power due to \(x^d \equiv -1\):
+\[
+    x \cdot s(x) = x \sum_{i=0}^{d-1} s_i x^i = s_{d-1} x^d + \sum_{i=0}^{d-2} s_i x^{i+1} \equiv -s_{d-1} + s_0 x + s_1 x^2 + \dots + s_{d-2} x^{d-1}.
+\]
+In matrix form, multiplication by \(x\) corresponds to the linear map
+\[
+    x \cdot s(x) \longleftrightarrow
+    \begin{pmatrix}
+        0 & 0 & \cdots & 0 & -1 \\
+        1 & 0 & \cdots & 0 & 0 \\
+        0 & 1 & \cdots & 0 & 0 \\
+        \vdots & \vdots & \ddots & \vdots & \vdots \\
+        0 & 0 & \cdots & 1 & 0
+    \end{pmatrix}
+    \begin{pmatrix}
+        s_0 \\ s_1 \\ s_2 \\ \vdots \\ s_{d-1}
+    \end{pmatrix}
+    =
+    \begin{pmatrix}
+        0 & -1 \\
+        I_{d-1} & 0
+    \end{pmatrix}
+    \begin{pmatrix}
+        s_0 \\ s_1 \\ \vdots \\ s_{d-1}
+    \end{pmatrix}.
+\]
+Extending this to an arbitrary polynomial \(r(x) = \sum_{i=0}^{d-1} r_i x^i\), the product \(r(x)e(x) \pmod{x^d + 1}\) is given by the \emph{anti-circulant} (or negacyclic) matrix-vector product:
+\[
+    r(x) e(x) \longleftrightarrow
+    \begin{pmatrix}
+        r_0 & -r_{d-1} & -r_{d-2} & \cdots & -r_1 \\
+        r_1 & r_0      & -r_{d-1} & \cdots & -r_2 \\
+        r_2 & r_1      & r_0      & \cdots & -r_3 \\
+        \vdots & \vdots & \vdots  & \ddots & \vdots \\
+        r_{d-1} & r_{d-2} & r_{d-3} & \cdots & r_0
+    \end{pmatrix}
+    \begin{pmatrix}
+        e_0 \\ e_1 \\ e_2 \\ \vdots \\ e_{d-1}
+    \end{pmatrix}.
+\]
+Each row is an orthogonal rotation with signs flipped past the boundary, so by the Cauchy--Schwarz inequality, the coefficients of \(r(x)e(x)\) remain small whenever \(r(x)\) and \(e(x)\) have small coefficients.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{@{}llcc@{}}
+        \toprule
+        \textbf{Scheme} & \textbf{Computation} & \textbf{Public Key} & \textbf{Ciphertext} \\
+        \midrule
+        Plain LWE (\(1\) bit)     & \(O(d^2 \log^2 q)\)        & \((d^2 + d) \log_2 q\) & \((d + 1) \log_2 q\) \\
+        Ring-LWE (\(d\) bits)     & \(O(d^2 \log^2 q)\)        & \(2d \log_2 q\)       & \(2d \log_2 q\) \\
+        Ring-LWE + NTT (\(d\) bits) & \(O(d \log d \log^2 q)\) & \(2d \log_2 q\)       & \(2d \log_2 q\) \\
+        \bottomrule
+    \end{tabular}
+    \caption{Comparison of plain LWE versus Ring-LWE (transmitting \(d\) bits of plaintext).}
+    \label{tab:ring-lwe-comparison}
+\end{table}
+
+While Ring-LWE drastically reduces key and ciphertext sizes to \(2d \log_2 q\), naive polynomial multiplication still requires \(O(d^2 \log^2 q)\) operations.
+Common parameter choices include:
+\begin{enumerate}
+    \item \(d = 256, \; q = 3329\) (used in Kyber / ML-KEM);
+    \item \(d = 512, \; q = 8380417\) (used in Dilithium / ML-DSA).
+\end{enumerate}
+In the next lecture, we will study how to accelerate polynomial multiplication in \(R_q\) from \(O(d^2)\) to \(O(d \log d)\) using the Number Theoretic Transform.

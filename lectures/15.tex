@@ -1,0 +1,90 @@
+\lecture{15}{2026-11-05}{Provable Security}
+
+\begin{itemize}
+    \item Syntax: What your scheme/protocol should do. E.g., publick-key encryption, signature, etc.
+    \item Goals: What security properties should the scheme satisfy?
+    \item Instantiation: Describe specific algorithms matching the syntax (e.g. El-Gamal with elliptic curves).
+    \item Hard Problem: e.g., DLOG, factoring, LWE.
+    \item Proof: Prove that breaking the security definition is at least as hard as solving the hard problem.
+\end{itemize}
+
+\paragraph{Syntax.}
+Public key encryption.
+A PKE scheme is four sets \(\mathcal{PK}, \mathcal{SK}, \mathcal{M}, \mathcal{C}\) and three efficient algorithms 
+\begin{align*} % add security parameter to keygen
+    \mathsf{KeyGen} &: \text{randomness} \to \mathcal{PK} \times \mathcal{SK}, \\
+    \mathsf{Enc} &: \mathcal{PK} \times \mathcal{M} \to \mathcal{C}, \\
+    \mathsf{Dec} &: \mathcal{SK} \times \mathcal{C} \to \mathcal{M},
+\end{align*}
+or equivalently
+\begin{align*}
+    \mathsf{KeyGen}() & \to (\mathsf{pk}, \mathsf{sk}) \\
+    \mathsf{Enc}(\mathsf{pk}, m) \to c \\
+    \mathsf{Dec}(\mathsf{sk}, c) \to m.
+\end{align*}
+
+\paragraph{Goals.}
+Correctness.
+For all \((\mathsf{pk}, \mathsf{sk}) \in \mathcal{PK} \times \mathcal{SK}\) output by \(\mathsf{KeyGen}()\) and all \(m \in \mathcal{M}\), we have
+\[
+    \mathsf{Dec}(\mathsf{sk}, \mathsf{Enc}(\mathsf{pk}, m)) = m.
+\]
+
+Security.
+One-wayness game:
+\begin{itemize}
+    \item \(m \xleftarrow{\$} \mathcal{M}\)
+    \item \((\mathsf{pk}, \mathsf{sk}) \gets \mathsf{KeyGen}()\)
+    \item \(c \gets \mathsf{Enc}(\mathsf{pk}, m)\)
+    \item \(m' \gets \mathcal{A}(\mathsf{pk}, c)\)
+    \item \(\mathcal{A}\) wins if \(m' = m\)
+\end{itemize}
+
+A PKE scheme is \emph{one-way secure} if for all efficient algorithms \(\mathcal{A}\), the probability that \(\mathcal{A}\) wins is negligible.
+
+Efficient means probabilistic polynomial time (PPT) in the security parameter \(\lambda\). 
+Negligible means that for all polynomials \(p(\cdot)\), for all sufficiently large \(\lambda\), we have \(\Pr[\mathcal{A} \text{ wins}] < 1/p(\lambda)\).
+
+\paragraph{Instantiation.}
+E.g. El-Gamal with elliptic curves.
+
+\(\mathsf{KeyGen}()\):
+\begin{itemize}
+    \item \(x \xleftarrow{\$} \mathbb{Z}_q\)
+    \item \(Q \gets xP\)
+    \item return \((\mathsf{pk}, \mathsf{sk}) = (Q, x)\)
+\end{itemize}
+
+\(\mathsf{Enc}(\mathsf{pk}, m)\):
+\begin{itemize}
+    \item \(y \xleftarrow{\$} \mathbb{Z}_q\)
+    \item \(S \gets y \mathsf{pk}\)
+    \item \(c_1 \gets yP\)
+    \item \(c_2 \gets m + S\)
+    \item return \(c = (c_1, c_2)\)
+\end{itemize}
+
+\paragraph{Hard Problem.}
+For El-Gamal with elliptic curves, the hard problem is the Computational Diffie-Hellman (CDH) problem: Given \(P, xP, yP\), compute \(xyP\).
+
+\begin{definition}
+    Problem \(A\) \emph{reduces to} problem \(B\) (denoted \(A \leq B\)) if there exists an efficient algorithm that solves \(A\) using an oracle for \(B\).
+\end{definition}
+
+\begin{proposition}
+    \(\mathsf{CDH} \leq \mathsf{DLOG}\).
+\end{proposition}
+\begin{proof}
+    Assume \(\mathcal{A}\) is an oracle that solves \(\mathsf{DLOG}\).
+    Given an instance of \(\mathsf{CDH}\), i.e. \(P, xP, yP\), we can compute \(x = \mathcal{A}(P, xP)\) and \(y = \mathcal{A}(P, yP)\).
+    Then we can compute \(xyP\) directly.
+\end{proof}
+
+\paragraph{Proof}
+Almost always by contrapositive.
+The real theorem is: If the hard problem is hard, then the scheme is secure.
+The strategy to prove it is to assume the scheme is insecure, and show that this implies the hard problem is easy.
+
+Concretely in our running example, we want to show that if El-Gamal is insecure, then \(\mathsf{CDH}\) is easy.
+
+That is, for any efficient \(\mathcal{A}\) against OW-security of El-Gamal, we can construct an efficient \(\mathcal{S}\) that solves \(\mathsf{CDH}\).

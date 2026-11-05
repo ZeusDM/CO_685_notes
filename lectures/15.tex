@@ -1,90 +1,144 @@
 \lecture{15}{2026-11-05}{Provable Security}
 
-\begin{itemize}
-    \item Syntax: What your scheme/protocol should do. E.g., publick-key encryption, signature, etc.
-    \item Goals: What security properties should the scheme satisfy?
-    \item Instantiation: Describe specific algorithms matching the syntax (e.g. El-Gamal with elliptic curves).
-    \item Hard Problem: e.g., DLOG, factoring, LWE.
-    \item Proof: Prove that breaking the security definition is at least as hard as solving the hard problem.
-\end{itemize}
+A central goal in modern cryptography is \emph{provable security}: rather than relying on ad-hoc heuristics, we mathematically establish that breaking a cryptographic scheme is at least as hard as solving an underlying computationally hard problem.
+Establishing provable security for a scheme generally follows a five-step framework:
+\begin{enumerate}
+    \item \textbf{Syntax:} Formalize the structural interface of the protocol (what spaces and algorithms define the primitive, e.g., public-key encryption or digital signatures).
+    \item \textbf{Security Goal:} Formalize the security guarantees via a rigorous definition or an interactive security game played between a challenger and an adversary.
+    \item \textbf{Instantiation:} Provide concrete algorithms matching the syntax (for instance, ElGamal encryption instantiated over an elliptic curve group).
+    \item \textbf{Hard Problem:} Specify a well-studied computational problem presumed intractable for efficient algorithms (such as the discrete logarithm problem, the Computational Diffie--Hellman problem, or Learning with Errors).
+    \item \textbf{Proof of Security:} Provide a reduction proving that any efficient adversary that violates the security goal can be transformed into an efficient algorithm that solves the underlying hard problem.
+\end{enumerate}
 
-\paragraph{Syntax.}
-Public key encryption.
-A PKE scheme is four sets \(\mathcal{PK}, \mathcal{SK}, \mathcal{M}, \mathcal{C}\) and three efficient algorithms 
-\begin{align*} % add security parameter to keygen
-    \mathsf{KeyGen} &: \text{randomness} \to \mathcal{PK} \times \mathcal{SK}, \\
-    \mathsf{Enc} &: \mathcal{PK} \times \mathcal{M} \to \mathcal{C}, \\
-    \mathsf{Dec} &: \mathcal{SK} \times \mathcal{C} \to \mathcal{M},
-\end{align*}
-or equivalently
+To make these concepts concrete, we illustrate each stage of the framework using public-key encryption as the general paradigm and elliptic-curve ElGamal as a running example.
+
+\section*{Syntax of Public-Key Encryption}
+
+Formally, a \emph{public-key encryption} (PKE) scheme is defined with respect to a security parameter \(\lambda\) and four sets: a public key space \(\mathcal{PK}\), a secret key space \(\mathcal{SK}\), a plaintext message space \(\mathcal{M}\), and a ciphertext space \(\mathcal{C}\).
+The scheme consists of three efficient (probabilistic polynomial-time) algorithms:
 \begin{align*}
-    \mathsf{KeyGen}() & \to (\mathsf{pk}, \mathsf{sk}) \\
-    \mathsf{Enc}(\mathsf{pk}, m) \to c \\
-    \mathsf{Dec}(\mathsf{sk}, c) \to m.
+    \mathsf{KeyGen}(1^\lambda) &\to (\mathsf{pk}, \mathsf{sk}) \in \mathcal{PK} \times \mathcal{SK}, \\
+    \mathsf{Enc}(\mathsf{pk}, m) &\to c \in \mathcal{C}, \\
+    \mathsf{Dec}(\mathsf{sk}, c) &\to m \in \mathcal{M} \cup \{\bot\},
 \end{align*}
+where \(\mathsf{KeyGen}\) and \(\mathsf{Enc}\) are randomized algorithms, and \(\mathsf{Dec}\) is typically deterministic.
 
-\paragraph{Goals.}
-Correctness.
-For all \((\mathsf{pk}, \mathsf{sk}) \in \mathcal{PK} \times \mathcal{SK}\) output by \(\mathsf{KeyGen}()\) and all \(m \in \mathcal{M}\), we have
-\[
-    \mathsf{Dec}(\mathsf{sk}, \mathsf{Enc}(\mathsf{pk}, m)) = m.
-\]
+\section*{Security Goals and Threat Models}
 
-Security.
-One-wayness game:
-\begin{itemize}
-    \item \(m \xleftarrow{\$} \mathcal{M}\)
-    \item \((\mathsf{pk}, \mathsf{sk}) \gets \mathsf{KeyGen}()\)
-    \item \(c \gets \mathsf{Enc}(\mathsf{pk}, m)\)
-    \item \(m' \gets \mathcal{A}(\mathsf{pk}, c)\)
-    \item \(\mathcal{A}\) wins if \(m' = m\)
-\end{itemize}
+Before analyzing security, any encryption scheme must first satisfy the basic correctness requirement.
 
-A PKE scheme is \emph{one-way secure} if for all efficient algorithms \(\mathcal{A}\), the probability that \(\mathcal{A}\) wins is negligible.
-
-Efficient means probabilistic polynomial time (PPT) in the security parameter \(\lambda\). 
-Negligible means that for all polynomials \(p(\cdot)\), for all sufficiently large \(\lambda\), we have \(\Pr[\mathcal{A} \text{ wins}] < 1/p(\lambda)\).
-
-\paragraph{Instantiation.}
-E.g. El-Gamal with elliptic curves.
-
-\(\mathsf{KeyGen}()\):
-\begin{itemize}
-    \item \(x \xleftarrow{\$} \mathbb{Z}_q\)
-    \item \(Q \gets xP\)
-    \item return \((\mathsf{pk}, \mathsf{sk}) = (Q, x)\)
-\end{itemize}
-
-\(\mathsf{Enc}(\mathsf{pk}, m)\):
-\begin{itemize}
-    \item \(y \xleftarrow{\$} \mathbb{Z}_q\)
-    \item \(S \gets y \mathsf{pk}\)
-    \item \(c_1 \gets yP\)
-    \item \(c_2 \gets m + S\)
-    \item return \(c = (c_1, c_2)\)
-\end{itemize}
-
-\paragraph{Hard Problem.}
-For El-Gamal with elliptic curves, the hard problem is the Computational Diffie-Hellman (CDH) problem: Given \(P, xP, yP\), compute \(xyP\).
-
-\begin{definition}
-    Problem \(A\) \emph{reduces to} problem \(B\) (denoted \(A \leq B\)) if there exists an efficient algorithm that solves \(A\) using an oracle for \(B\).
+\begin{definition}[Correctness]
+    A public-key encryption scheme is \emph{correct} if for all key pairs \((\mathsf{pk}, \mathsf{sk}) \gets \mathsf{KeyGen}(1^\lambda)\) and all valid messages \(m \in \mathcal{M}\),
+    \[
+        \mathsf{Dec}(\mathsf{sk}, \mathsf{Enc}(\mathsf{pk}, m)) = m.
+    \]
 \end{definition}
 
+To define security, we formalize the adversary's capability and objective using an interactive security game against a hypothetical challenger.
+The most baseline confidentiality guarantee is \emph{one-wayness} (OW), where the adversary's objective is to completely recover the underlying plaintext message from the ciphertext.
+
+\begin{definition}[One-Way Security Game]
+    The one-wayness game for a public-key encryption scheme proceeds as follows:
+    \begin{enumerate}
+        \item The challenger generates a fresh key pair \((\mathsf{pk}, \mathsf{sk}) \gets \mathsf{KeyGen}(1^\lambda)\).
+        \item The challenger samples a message uniformly at random from the message space, \(m \xleftarrow{\$} \mathcal{M}\).
+        \item The challenger computes the challenge ciphertext \(c \gets \mathsf{Enc}(\mathsf{pk}, m)\) and hands \((\mathsf{pk}, c)\) to the adversary \(\mathcal{A}\).
+        \item The adversary outputs a plaintext guess \(m' \gets \mathcal{A}(\mathsf{pk}, c)\).
+    \end{enumerate}
+    The adversary \(\mathcal{A}\) wins the game if \(m' = m\).
+\end{definition}
+
+\begin{definition}[One-Way Security]
+    A public-key encryption scheme is \emph{one-way secure} (OW-secure) if for every efficient adversary \(\mathcal{A}\), the probability that \(\mathcal{A}\) wins the one-wayness game is negligible in the security parameter \(\lambda\).
+\end{definition}
+
+Here, \emph{efficient} means running in probabilistic polynomial time (PPT) with respect to \(\lambda\).
+A function \(\epsilon(\lambda)\) is \emph{negligible} (denoted \(\operatorname{negl}(\lambda)\)) if for every positive polynomial \(p(\lambda)\), there exists a threshold \(\lambda_0\) such that for all \(\lambda > \lambda_0\),
+\[
+    \epsilon(\lambda) < \frac{1}{p(\lambda)}.
+\]
+
+\section*{Running Example: Instantiation with Elliptic Curves}
+
+We instantiate the public-key encryption syntax using the ElGamal encryption scheme over an elliptic curve group.
+Let \(E\) be an elliptic curve defined over a finite field \(\mathbb{F}_p\), and let \(P \in E(\mathbb{F}_p)\) be a base point generating a cyclic subgroup of prime order \(q\).
+The message space \(\mathcal{M}\) consists of points embedded into the group \(\langle P \rangle\).
+The scheme is specified by the following algorithms:
+\begin{itemize}
+    \item \(\mathsf{KeyGen}()\):
+    Sample a private key uniformly at random, \(x \xleftarrow{\$} \mathbb{Z}_q\).
+    Compute the public point \(Q = xP\).
+    Output the key pair
+    \[
+        \mathsf{pk} = Q, \qquad \mathsf{sk} = x.
+    \]
+    \item \(\mathsf{Enc}(\mathsf{pk}, m)\):
+    Given a public key \(\mathsf{pk} = Q\) and a message point \(m \in \langle P \rangle\), sample an ephemeral scalar \(y \xleftarrow{\$} \mathbb{Z}_q\).
+    Compute the shared secret point \(S = y Q = y (x P)\) and the ciphertext components
+    \[
+        c_1 = yP, \qquad c_2 = m + S.
+    \]
+    Output the ciphertext \(c = (c_1, c_2)\).
+    \item \(\mathsf{Dec}(\mathsf{sk}, c)\):
+    Given the secret key \(\mathsf{sk} = x\) and ciphertext \(c = (c_1, c_2)\), reconstruct the shared secret point using \(c_1\):
+    \[
+        S = x c_1 = x (yP) = y(xP).
+    \]
+    Recover and output the plaintext point:
+    \[
+        m = c_2 - S = c_2 - x c_1.
+    \]
+\end{itemize}
+Correctness holds immediately since \(x c_1 = x (yP) = y (xP) = y Q = S\), and hence \(c_2 - x c_1 = (m + S) - S = m\).
+
+\section*{Hard Problems and Reductions}
+
+To prove security, we must identify the underlying computational problem on which the scheme relies and define the notion of a reduction.
+
+In our running example of elliptic-curve ElGamal, the public key is \(Q = xP\) and the ciphertext contains \(c_1 = yP\) along with \(c_2 = m + xyP\).
+Recovering the shared secret point \(xyP\) from \(P, xP, yP\) corresponds exactly to the \emph{Computational Diffie--Hellman} (CDH) problem.
+
+\begin{definition}[Computational Diffie--Hellman Problem]
+    Let \(P\) generate a cyclic group of prime order \(q\).
+    Given the triple \((P, xP, yP)\) for uniformly random \(x, y \in \mathbb{Z}_q\), the \emph{Computational Diffie--Hellman} (CDH) problem asks to compute the point \(xyP\).
+\end{definition}
+
+Relating computational problems relies on algorithmic reductions.
+
+\begin{definition}[Reduction]
+    A computational problem \(A\) \emph{reduces to} a problem \(B\) (denoted \(A \le B\)) if there exists an efficient algorithm that solves \(A\) using access to an oracle for \(B\).
+\end{definition}
+
+When \(A \le B\), problem \(B\) is at least as hard as problem \(A\): if \(B\) can be solved efficiently, then so can \(A\).
+As an illustration, CDH reduces to the discrete logarithm problem:
+
 \begin{proposition}
-    \(\mathsf{CDH} \leq \mathsf{DLOG}\).
+    \(\mathsf{CDH} \le \mathsf{DLOG}\).
 \end{proposition}
 \begin{proof}
-    Assume \(\mathcal{A}\) is an oracle that solves \(\mathsf{DLOG}\).
-    Given an instance of \(\mathsf{CDH}\), i.e. \(P, xP, yP\), we can compute \(x = \mathcal{A}(P, xP)\) and \(y = \mathcal{A}(P, yP)\).
-    Then we can compute \(xyP\) directly.
+    Let \(\mathcal{O}_{\mathsf{DLOG}}\) be an oracle that solves the discrete logarithm problem in \(\langle P \rangle\).
+    Given an instance \((P, xP, yP)\) of the CDH problem:
+    \begin{enumerate}
+        \item Query the oracle on the first pair to extract \(x = \mathcal{O}_{\mathsf{DLOG}}(P, xP)\).
+        \item Query the oracle on the second pair to extract \(y = \mathcal{O}_{\mathsf{DLOG}}(P, yP)\).
+        \item Compute \(xyP\) directly by scalar multiplication.
+    \end{enumerate}
+    Thus, an efficient discrete logarithm solver immediately yields an efficient CDH solver.
 \end{proof}
 
-\paragraph{Proof}
-Almost always by contrapositive.
-The real theorem is: If the hard problem is hard, then the scheme is secure.
-The strategy to prove it is to assume the scheme is insecure, and show that this implies the hard problem is easy.
+\section*{The Structure of Security Proofs}
 
-Concretely in our running example, we want to show that if El-Gamal is insecure, then \(\mathsf{CDH}\) is easy.
+Security proofs in cryptography are almost always structured by contrapositive.
+The overarching theorem asserts:
+\[
+    \text{If the underlying computational problem is hard, then the scheme is secure.}
+\]
+To prove this, we assume for contradiction that the scheme is \emph{insecure}—that is, there exists an efficient adversary \(\mathcal{A}\) that breaks the security game with non-negligible advantage.
+We then construct an efficient simulator or solver algorithm \(\mathcal{S}\) that uses \(\mathcal{A}\) as a subroutine to solve the supposedly hard computational problem.
 
-That is, for any efficient \(\mathcal{A}\) against OW-security of El-Gamal, we can construct an efficient \(\mathcal{S}\) that solves \(\mathsf{CDH}\).
+In the context of our running example:
+\begin{center}
+    \emph{If ElGamal encryption is not one-way secure, then \(\mathsf{CDH}\) can be solved efficiently.}
+\end{center}
+Concretely, given any PPT adversary \(\mathcal{A}\) that wins the OW-security game against elliptic-curve ElGamal with non-negligible probability, one can construct an efficient solver \(\mathcal{S}\) that accepts an arbitrary CDH challenge instance \((P, xP, yP)\), simulates an authentic public key and ciphertext challenge to \(\mathcal{A}\), and extracts the Diffie--Hellman secret \(xyP\) from \(\mathcal{A}\)'s output.
+Hence, the security of elliptic-curve ElGamal reduces directly to the hardness of the Computational Diffie--Hellman problem.

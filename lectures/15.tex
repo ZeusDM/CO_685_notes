@@ -133,7 +133,7 @@ The overarching theorem asserts:
 \[
     \text{If the underlying computational problem is hard, then the scheme is secure.}
 \]
-To prove this, we assume for contradiction that the scheme is \emph{insecure}—that is, there exists an efficient adversary \(\mathcal{A}\) that breaks the security game with non-negligible advantage.
+To prove this, we assume for contradiction that the scheme is \emph{insecure}---that is, there exists an efficient adversary \(\mathcal{A}\) that breaks the security game with non-negligible advantage.
 We then construct an efficient simulator or solver algorithm \(\mathcal{S}\) that uses \(\mathcal{A}\) as a subroutine to solve the supposedly hard computational problem.
 
 In the context of our running example:
@@ -143,7 +143,7 @@ In the context of our running example:
 
 \subsection*{A First (Flawed) Attempt at the Reduction}
 
-To illustrate how reductions work—and where subtle issues arise—consider the following initial attempt to prove that breaking one-wayness of ElGamal implies solving CDH.
+To illustrate how reductions work---and where subtle issues arise---consider the following initial attempt to prove that breaking one-wayness of ElGamal implies solving CDH.
 
 Suppose we are given a fixed CDH challenge instance \((P, A = xP, B = yP)\) for some unknown, fixed \(x, y \in \mathbb{Z}_q\), and our goal is to compute the point \(xyP\).
 Assume there exists an efficient adversary \(\mathcal{A}\) that breaks the one-wayness of elliptic-curve ElGamal.

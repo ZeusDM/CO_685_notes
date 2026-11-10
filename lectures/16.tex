@@ -1,0 +1,131 @@
+\lecture{16}{2026-11-10}{Security Proofs for ElGamal}
+
+\section*{OW-CPA Security of ElGamal}
+
+Recall that in the \emph{OW-CPA security game}, the challenger generates \((\mathsf{pk}, \mathsf{sk}) \gets \mathsf{KeyGen}()\), samples a uniform message \(m \xleftarrow{\$} \mathcal{M}\), and encrypts \(c \gets \mathsf{Enc}(\mathsf{pk}, m)\).
+The adversary outputs a guess \(m' \gets \mathcal{A}(\mathsf{pk}, c)\) and wins if and only if \(m = m'\).
+The winning probability \(\Pr[\mathcal{A} \text{ wins}]\) is taken over the randomness of both the challenger and the adversary, and a scheme is OW-CPA secure if this probability is negligible for every PPT adversary.
+
+We want to show that ElGamal is OW-CPA secure in a group \(G\) if CDH is hard in \(G\) (contrapositively, any efficient OW-CPA adversary yields an efficient CDH solver).
+To fix the gap from the naive reduction in the previous lecture, we first establish two lemmas.
+
+\begin{lemma}[Worst-Case CDH \(\le\) Average-Case CDH]\label{lem:cdh-random-self-reduction}
+    Suppose an algorithm \(\mathcal{A}\) solves CDH with probability \(p\) when given \((P, xP, yP)\) for uniformly random \(x, y \in \mathbb{Z}_q\).
+    Then there exists an algorithm \(\mathcal{S}\) that solves CDH given any arbitrary (not necessarily random) instance \((P, xP, yP)\) with probability \(p\).
+\end{lemma}
+
+\begin{proof}
+    Given an arbitrary instance \((P, xP, yP)\), sample \(x', y' \xleftarrow{\$} \mathbb{Z}_q\) (assuming \(\operatorname{ord}(P) = q\)), and set
+    \[
+        X' \gets x'P + xP, \qquad Y' \gets y'P + yP.
+    \]
+    Call \(\mathcal{A}(P, X', Y') \to Z'\).
+    Since \(X', Y'\) are uniformly random, with probability \(p\) we have
+    \[
+        Z' = (x' + x)(y' + y)P = x'y'P + x'(yP) + y'(xP) + xyP.
+    \]
+    Thus \(\mathcal{S}\) recovers the solution
+    \[
+        xyP = Z' - x'y'P - x'(yP) - y'(xP). \qedhere
+    \]
+\end{proof}
+
+\begin{lemma}\label{lem:elgamal-uniform-ct}
+    An ElGamal ciphertext \(c = (c_1, c_2)\) is uniformly random in \(\langle P \rangle \times \langle P \rangle\) if the message \(m \in \langle P \rangle\) is uniformly random.
+\end{lemma}
+
+\begin{proof}
+    Fix any \((r_1P, r_2P) \in \langle P \rangle \times \langle P \rangle\).
+    Since \(c_1 = rP\) for uniformly random \(r \xleftarrow{\$} \mathbb{Z}_q\), we have \(\Pr[c_1 = r_1P] = \frac{1}{q}\).
+    Conditioned on \(c_1 = r_1P\) (so \(r = r_1\)), \(c_2 = r_1 \mathsf{pk} + m\), and therefore
+    \[
+        c_2 = r_2P \iff m = r_2P - r_1\mathsf{pk}.
+    \]
+    Since \(m\) is uniformly random and independent of \(r\), \(\Pr[c_2 = r_2P \mid c_1 = r_1P] = \frac{1}{q}\), giving \(\Pr[c = (r_1P, r_2P)] = \frac{1}{q^2}\).
+\end{proof}
+
+\begin{theorem}\label{thm:elgamal-ow-cpa}
+    If \(\mathcal{A}\) is an efficient OW-CPA adversary against ElGamal that wins with probability \(p\), then there exists an efficient solver that solves (worst-case) CDH with probability \(p\) (making one call to \(\mathcal{A}\) and \(O(1)\) group operations).
+    In particular, if CDH is hard in \(G\), then \(p\) must be negligible, so ElGamal is OW-CPA secure in \(G\).
+\end{theorem}
+
+\begin{proof}
+    Let \(\mathcal{A}\) be a OW-CPA adversary that wins with probability \(p\). By \Cref{lem:cdh-random-self-reduction}, it suffices to build a solver \(\mathcal{S}\) for average-case CDH with success probability \(p\).
+    Given a random CDH instance \((P, X, Y)\) with \(X = xP\), \(Y = yP\) and \(x, y \xleftarrow{\$} \mathbb{Z}_q\):
+    \begin{enumerate}
+        \item Set \(\mathsf{pk} = X\) (corresponding to \(\mathsf{sk} = x\)).
+        \item Set \(c = (Y, zP)\) for \(z \xleftarrow{\$} \mathbb{Z}_q\).
+        \item Run \(m' \gets \mathcal{A}(\mathsf{pk}, c)\).
+    \end{enumerate}
+    By \Cref{lem:elgamal-uniform-ct}, an honest ciphertext with a uniformly random message is uniformly random in \(\langle P \rangle \times \langle P \rangle\).
+    Since \(\mathsf{pk}\) and \(c = (Y, zP)\) are both uniformly random, this matches the exact input distribution of the OW-CPA game, so \(\mathcal{A}\) wins with probability \(p\).
+    Moreover, \(\mathcal{A}\)'s view corresponds to an encryption of \(m = zP - xyP\), since
+    \[
+        c = (yP, y \cdot \mathsf{pk} + m) = (yP, xyP + m) = (yP, zP).
+    \]
+    Thus \(\mathcal{S}\) outputs \(zP - m'\) as \(xyP\), succeeding with probability \(p\).
+    Applying \Cref{lem:cdh-random-self-reduction} to \(\mathcal{S}\) yields a worst-case CDH solver with the same probability \(p\).
+\end{proof}
+
+Notice that \Cref{thm:elgamal-ow-cpa} also admits a \emph{concrete security} interpretation without taking asymptotic limits. Because the reduction preserves the exact success probability \(p\) and adds only \(O(1)\) group operations to the runtime of \(\mathcal{A}\), we can plug in actual numbers for a fixed group such as Curve25519 (where \(q \approx 2^{252}\)). For example, if we assume no algorithm can solve CDH on Curve25519 in fewer than \(\approx 2^{128}\) operations with noticeable probability \(p\), then no OW-CPA adversary against ElGamal on Curve25519 can succeed in fewer than \(\approx 2^{128}\) operations with probability \(p\) either.
+
+\section*{IND-CPA Security of ElGamal}
+
+\begin{definition}[IND-CPA Security]
+    In the \emph{IND-CPA (indistinguishability under chosen plaintext attack) security game}, an adversary \(\mathcal{A} = (\mathcal{A}_1, \mathcal{A}_2)\) plays against a challenger:
+    \begin{enumerate}
+        \item The challenger generates \((\mathsf{pk}, \mathsf{sk}) \gets \mathsf{KeyGen}()\).
+        \item The adversary outputs \((m_0, m_1, \mathsf{state}) \gets \mathcal{A}_1(\mathsf{pk})\), where \(m_0, m_1\) have equal length.
+        \item The challenger samples a uniform bit \(b \xleftarrow{\$} \{0, 1\}\).
+        \item The challenger computes the challenge ciphertext \(c^* \gets \mathsf{Enc}(\mathsf{pk}, m_b)\).
+        \item The adversary outputs a guess \(b' \gets \mathcal{A}_2(\mathsf{state}, c^*)\).
+    \end{enumerate}
+    The adversary \(\mathcal{A}\) wins if \(b = b'\).
+    A scheme is \emph{IND-CPA secure} if \(\Pr[\mathcal{A} \text{ wins}] \le \frac{1}{2} + \operatorname{negl}\) for all PPT adversaries \(\mathcal{A}\).
+    We define the \emph{advantage} of \(\mathcal{A}\) as \(\Pr[\mathcal{A} \text{ wins}] - \frac{1}{2}\).
+\end{definition}
+
+Any deterministic encryption scheme cannot be IND-CPA secure, since an adversary can simply encrypt \(m_0\) and \(m_1\) and compare the ciphertexts to \(c^*\).
+
+\begin{definition}[Decisional Diffie--Hellman Problem]
+    Given either (a) or (b) with probability \(\frac{1}{2}\):
+    \begin{enumerate}
+        \item[(a)] \((P, xP, yP, xyP)\) for uniformly random \(x, y \xleftarrow{\$} \mathbb{Z}_q\),
+        \item[(b)] \((P, xP, yP, zP)\) for uniformly random \(x, y, z \xleftarrow{\$} \mathbb{Z}_q\),
+    \end{enumerate}
+    decide which one was given.
+\end{definition}
+
+\begin{theorem}
+    If DDH is hard in \(G\), then ElGamal is IND-CPA secure in \(G\).
+\end{theorem}
+
+\begin{proof}
+    Given an IND-CPA adversary \(\mathcal{A} = (\mathcal{A}_1, \mathcal{A}_2)\) with advantage \(\epsilon\), we construct \(\mathcal{S}\) to solve a DDH instance \((P, X, Y, Z)\).
+
+    \(\mathcal{S}\) sets \(\mathsf{pk} = X\) and runs \(\mathcal{A}_1(\mathsf{pk})\) to get \((m_0, m_1, \mathsf{state})\).
+    Then \(\mathcal{S}\) samples \(b \xleftarrow{\$} \{0, 1\}\).
+    A real encryption of \(m_b\) would be
+    \[
+        c^* = (yP, y\mathsf{pk} + m_b) = (yP, xyP + m_b)
+    \]
+    for uniformly random \(y \xleftarrow{\$} \mathbb{Z}_q\).
+    \(\mathcal{S}\) instead sets \(c^* = (Y, Z + m_b)\), runs \(b' \gets \mathcal{A}_2(\mathsf{state}, c^*)\), and outputs ``DH'' if \(b = b'\) or ``random'' otherwise.
+
+    We show that \(\mathcal{S}\) succeeds with probability \(\frac{1}{2} + \epsilon\) on a DH tuple and \(\frac{1}{2}\) on a random tuple:
+    \begin{itemize}
+        \item If \(Z = xyP\), then \(\mathcal{A}\)'s view is distributed identically to the real IND-CPA game, so \(\Pr[b = b'] = \frac{1}{2} + \epsilon\), and \(\mathcal{S}\) correctly outputs ``DH'' with probability \(\frac{1}{2} + \epsilon\).
+        \item If \(Z\) is uniformly random in \(\langle P \rangle\), we get no direct guarantee from \(\mathcal{A}\)'s IND-CPA behavior because \(c^*\) is not a valid encryption. However, since \(Z\) is uniform and independent of all other variables, \(Z + m_b\) is also uniformly random in \(\langle P \rangle\) and independent of \(b\). Thus \((\mathsf{pk}, c^*)\)---and therefore \(b'\)---is independent of \(b\). Whatever the distribution of \(b'\), since \(b \xleftarrow{\$} \{0, 1\}\) is uniform, \(\Pr[b \neq b'] = \frac{1}{2}\), meaning \(\mathcal{S}\) correctly outputs ``random'' with probability \(\frac{1}{2}\).
+    \end{itemize}
+    By the law of total probability, since each case occurs with probability \(\frac{1}{2}\),
+    \begin{align*}
+        \Pr[\mathcal{S} \text{ solves DDH}]
+        &= \Pr[\mathcal{S} \text{ solves} \mid Z = xyP]\Pr[Z = xyP] \\
+        &\quad + \Pr[\mathcal{S} \text{ solves} \mid Z \text{ random}]\Pr[Z \text{ random}] \\
+        &= \left(\frac{1}{2} + \epsilon\right)\frac{1}{2} + \frac{1}{2}\cdot\frac{1}{2}
+        = \frac{1}{2} + \frac{\epsilon}{2}.
+    \end{align*}
+    Thus \(\mathcal{S}\) achieves advantage \(\frac{\epsilon}{2}\) against DDH. If \(\epsilon\) is non-negligible, then \(\frac{\epsilon}{2}\) is also non-negligible, contradicting the hardness of DDH in \(G\).
+\end{proof}
+
+Note two contrasts between the two security proofs above. First, IND-CPA is a stronger security notion than OW-CPA, and accordingly requires a stronger hardness assumption (DDH rather than CDH, since \(\mathsf{DDH} \le \mathsf{CDH}\)). Second, unlike our tight OW-CPA reduction (which preserves the adversary's success probability \(p\)), the IND-CPA reduction loses a factor of \(2\) in advantage (\(\frac{\epsilon}{2}\) instead of \(\epsilon\)).

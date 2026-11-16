@@ -1,0 +1,107 @@
+\lecture{17}{2026-11-12}{IND-CCA Security and the Random Oracle Model}
+
+\begin{definition}[Indistinguishibility under chosen ciphertext attack (IND-CCA)]
+    In the \emph{IND-CCA (indistinguishability under chosen ciphertext attack) security game}, an adversary \(\mathcal{A} = (\mathcal{A}_1, \mathcal{A}_2)\) plays against a challenger:
+    \begin{enumerate}
+        \item The challenger generates \((\mathsf{pk}, \mathsf{sk}) \gets \mathsf{KeyGen}()\).
+        \item The adversary outputs \((m_0, m_1, \mathsf{state}) \gets \mathcal{A}_1(\mathsf{pk})\), where \(m_0, m_1\) have equal length.
+        \item The challenger samples a uniform bit \(b \xleftarrow{\$} \{0, 1\}\).
+        \item The challenger computes the challenge ciphertext \(c^* \gets \mathsf{Enc}(\mathsf{pk}, m_b)\).
+        \item The adversary outputs a guess \(b' \gets \mathcal{A}_2(\mathsf{state}, c^*)\), with access to a decryption oracle \(\mathcal{O}_D\) that returns \(\mathsf{Dec}(\mathsf{sk}, c)\) for any ciphertext \(c \neq c^*\).
+    \end{enumerate}
+    The adversary \(\mathcal{A}\) wins if \(b = b'\).
+    A scheme is \emph{IND-CCA secure} if \(\Pr[\mathcal{A} \text{ wins}] \le \frac{1}{2} + \operatorname{negl}\) for all PPT adversaries \(\mathcal{A}\).
+    We define the \emph{advantage} of \(\mathcal{A}\) as \(\Pr[\mathcal{A} \text{ wins}] - \frac{1}{2}\).
+\end{definition}
+
+\begin{theorem}
+    El-Gamal is not IND-CCA secure.
+\end{theorem}
+
+\begin{proof}
+    Define the adversary \(\mathcal{A} = (\mathcal{A}_1, \mathcal{A}_2)\) as follows.
+    The algorithm \(\mathcal{A}_1(\mathsf{pk})\) samples distinct messages \(m_0, m_1\) and outputs \((m_0, m_1, \mathsf{state})\) where \(\mathsf{state} = (m_0, m_1)\).
+    The algorithm \(\mathcal{A}_2(c^*, \mathsf{state})\):
+    \begin{enumerate}
+        \item Let \((c_1^*, c_2^*) \gets c^*\).
+        \item Set \(c' \gets (c_1^* + P, c_2^* + P)\) where \(P\) is the generator of the group.
+        \item Query the decryption oracle to get \(m' \gets \mathcal{O}_D(c')\).
+        \item Set \(m_b \gets m' - P + \mathsf{pk}\).
+        \item Return \(0\) if \(m_b = m_0\) and \(1\) otherwise.
+    \end{enumerate}
+
+    We show that \(\mathcal{A}\) wins with probability \(1\).
+    Since \(c' \neq c^*\), the decryption oracle will return 
+    \begin{align*}
+        m' &= \mathsf{Dec}(\mathsf{sk}, c') \\
+        &= \mathsf{Dec}(\mathsf{sk}, (c_1^* + P, c_2^* + P)) \\
+        &= c_2^* + P - \mathsf{sk}(c_1^* + P) \\
+        &= c_2^* + P - \mathsf{sk}c_1^* - \mathsf{sk}P \\
+        &= c_2^* - \mathsf{sk}c_1^* + P - \mathsf{sk}P \\
+        &= m_b + P - \mathsf{sk}P \\
+        &= m_b + P - \mathsf{pk}.
+    \end{align*}
+    So \(m_b = m' - P + \mathsf{pk}\), and \(\mathcal{A}\) correctly outputs \(b\) with probability \(1\).
+\end{proof}
+
+\begin{definition}[Hash Function]
+    A \emph{hash function} is a function \(H: \{0, 1\}^* \to \{0, 1\}^n\) that takes an arbitrary-length input and produces a fixed-length output.
+    A hash function is \emph{preimage-resistant} if it is computationally infeasible to find an input \(x\) given a hash output \(y = H(x)\).
+    A hash function is \emph{collision-resistant} if it is computationally infeasible to find two distinct inputs \(x, x'\) such that \(H(x) = H(x')\).
+\end{definition}
+
+The \emph{random oracle model} assumes \(H\) is a uniformly random function, that is, in a security game, \(\Pr[\mathcal{A}]\) is also taken over the choice of \(H\), and \(\mathcal{A}\) gets only ``black-box'' access to \(H\).
+
+\begin{example}[Deterministic El-Gamal]
+    Consider the following deterministic variant of El-Gamal:
+    \begin{itemize}
+        \item \(\mathsf{KeyGen}()\) is the same as in El-Gamal.
+        \item \(\mathsf{Enc}(\mathsf{pk}, m)\) computes \(r = H(m)\) and outputs \(c = (rP, r\mathsf{pk} + m)\).
+        \item \(\mathsf{Dec}(\mathsf{sk}, c)\) is the same as in El-Gamal.
+    \end{itemize}
+\end{example}
+
+\begin{proposition}
+    The deterministic El-Gamal scheme is:
+    \begin{enumerate}
+        \item not IND-CPA secure;
+        \item OW-CPA secure in the random oracle model, assuming CDH is hard in \(G\) and DDH is easy in \(G\).
+    \end{enumerate}
+\end{proposition}
+
+\begin{proof}[Proof of the first claim]
+    Any deterministic encryption scheme cannot be IND-CPA secure, since an adversary can simply encrypt \(m_0\) and \(m_1\) and compare the ciphertexts to \(c^*\).
+\end{proof}
+
+\begin{proof}[Proof of the second claim]
+    Assume \(\mathcal{A}\) breaks OW-CPA with probability \(\epsilon\).
+    We construct a simulator \(\mathcal{S}\) to solve a given CDH challenge \((P, X, Y)\) with \(X = xP\) and \(Y = yP\).
+
+    Paralleling the OW-CPA reduction from Lecture~16, \(\mathcal{S}\) sets \(\mathsf{pk} \gets X\), samples a uniform \(Z \xleftarrow{\$} \langle P \rangle\), and gives \(\mathcal{A}\) the challenge ciphertext \(c = (Y, Z)\).
+    If \(c\) is an encryption of \(m\), then
+    \[
+        c_2 = Z = xyP + m \iff m = Z - xyP,
+    \]
+    which is uniformly distributed in \(\langle P \rangle\) because \(Z\) is uniform.
+    Furthermore, \(c_1 = Y = yP\) matches \(H(m)P\) provided \(H(m) = y\).
+
+    Unlike standard ElGamal where encryption randomness is private, here \(r = H(m)\) is computed via the public random oracle.
+    In the random oracle model, \(\mathcal{A}\) does not compute hashes locally; instead, all calls to \(H\) are queries handled by \(\mathcal{S}\).
+    Normally, \(\mathcal{S}\) simulates \(H\) via \emph{lazy sampling}: maintaining a table \(D\) of pairs \((Q, h)\), returning the stored \(h\) if \(Q \in D\), and otherwise sampling and recording a fresh random scalar \(h \xleftarrow{\$} \mathbb{Z}_q\).
+
+    However, \(\mathcal{S}\) does not know \(y\), so it cannot answer \(H(m) = y\).
+    Instead, assuming DDH is easy, \(\mathcal{S}\) can check whether any query \(Q\) equals \(m\) without knowing \(y\): since \(Q = m \iff Z - Q = xyP\), this is equivalent to checking whether \((P, X, Y, Z - Q)\) is a Diffie--Hellman tuple.
+    When \(\mathcal{A}\) queries \(H(Q)\):
+    \begin{itemize}
+        \item If \((P, X, Y, Z - Q)\) is a Diffie--Hellman tuple, then \(Q = m\). \(\mathcal{S}\) immediately outputs \(Z - Q = xyP\) and halts without needing to answer the query.
+        \item Otherwise, \(Q \neq m\), so \(\mathcal{S}\) answers via lazy sampling.
+    \end{itemize}
+
+    If \(\mathcal{A}\) never queries \(H(m)\), it learns no information about \(m\), so its probability of guessing \(m\) is at most \(\frac{1}{q}\) (no better than guessing at random).
+    Hence, whenever \(\mathcal{A}\) succeeds (with probability \(\epsilon\)), it must query \(H(m)\) with probability at least \(\epsilon - \frac{1}{q}\), at which point \(\mathcal{S}\) intercepts it and solves CDH.
+\end{proof}
+
+\begin{remark}[Gap Diffie--Hellman Groups]
+    Groups where DDH is easy while CDH is believed to be hard are known as \emph{Gap Diffie--Hellman (GDH) groups}.
+    Recall from Lecture~10 that these can be instantiated via bilinear pairings \(e: G \times G \to G_T\), where testing whether \((P, X, Y, W)\) is a Diffie--Hellman tuple amounts to checking whether \(e(X, Y) = e(P, W)\).
+\end{remark}

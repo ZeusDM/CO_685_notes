@@ -1,0 +1,109 @@
+\lecture{18}{2026-11-17}{The Fujisaki--Okamoto Transform}
+
+In the last lecture, we saw that standard ElGamal (and many base schemes) is vulnerable to chosen-ciphertext attacks (not IND-CCA secure) because ciphertexts can be malleated/tampered with.
+The \emph{Fujisaki--Okamoto (FO) transform} is a compiler that takes a weaker encryption scheme and upgrades it into a fully IND-CCA secure scheme using hash functions in the random oracle model (ROM).
+
+\begin{definition}[Fujisaki--Okamoto Transform]
+    Let \(K = (K.\mathsf{KeyGen},\allowbreak K.\mathsf{Enc},\allowbreak K.\mathsf{Dec})\) be a deterministic public-key encryption scheme, and let \(H_1, H_2\) be hash functions modeled as random oracles.
+    The compiled scheme \(K^{\mathsf{FO}}\) is defined as follows:
+    \begin{itemize}
+        \item \(K^{\mathsf{FO}}.\mathsf{KeyGen}()\):
+        \begin{enumerate}
+            \item Run \((\mathsf{pk}, \mathsf{sk}) \gets K.\mathsf{KeyGen}()\).
+            \item Return \((\mathsf{pk}, \mathsf{sk})\).
+        \end{enumerate}
+
+        \item \(K^{\mathsf{FO}}.\mathsf{Enc}(\mathsf{pk}, m)\):
+        \begin{enumerate}
+            \item Sample a fresh random seed \(r \xleftarrow{\$} \mathcal{M}\).
+            \item Encrypt the seed: \(c_1 \gets K.\mathsf{Enc}(\mathsf{pk}, r)\).
+            \item Mask the message: \(c_2 \gets H_1(r) \oplus m\).
+            \item Create a verification tag: \(c_3 \gets H_2(m \parallel r)\).
+            \item Return \(c = (c_1, c_2, c_3)\).
+        \end{enumerate}
+
+        \item \(K^{\mathsf{FO}}.\mathsf{Dec}(\mathsf{sk}, c = (c_1, c_2, c_3))\):
+        \begin{enumerate}
+            \item Decrypt \(c_1\) to recover \(r' \gets K.\mathsf{Dec}(\mathsf{sk}, c_1)\).
+            \item Unmask \(m' \gets c_2 \oplus H_1(r')\).
+            \item Recompute the tag \(c_3' \gets H_2(m' \parallel r')\).
+            \item If \(c_3' = c_3\), return \(m'\); otherwise, reject and return \(\bot\).
+        \end{enumerate}
+    \end{itemize}
+\end{definition}
+
+The idea is that, if an attacker tries to tamper with \(c_1\) or \(c_2\), they do not know the resulting \((m', r')\), so they cannot forge the matching hash tag \(c_3\).
+The decryption oracle just outputs \(\bot\), giving the attacker zero useful information.
+
+\begin{theorem}
+    If \(K\) is OW-CPA secure, then \(K^{\mathsf{FO}}\) is IND-CCA secure in the random oracle model.
+\end{theorem}
+
+\begin{proof}
+    Assume \(\mathcal{A}\) is a PPT IND-CCA adversary against \(K^{\mathsf{FO}}\) that wins with probability \(\frac{1}{2} + \operatorname{Adv}_{\mathcal{A}}\).
+    We construct a simulator \(\mathcal{S}\) to break the OW-CPA security of \(K\).
+    The OW-CPA challenger gives \(\mathcal{S}\) a public key \(\mathsf{pk}\) and a challenge ciphertext \(c^* = K.\mathsf{Enc}(\mathsf{pk}, r^*)\) for an unknown uniform seed \(r^* \xleftarrow{\$} \mathcal{M}\); the goal of \(\mathcal{S}\) is to recover \(r^*\).
+
+    To begin, \(\mathcal{S}\) initializes empty hash query tables \(D_1, D_2 \gets \emptyset\) and runs \(\mathcal{A}(\mathsf{pk})\).
+    When \(\mathcal{A}\) submits two challenge messages \(m_0, m_1\), the simulator samples a uniform choice bit \(b \xleftarrow{\$} \{0, 1\}\) along with independent uniform bitstrings \(c_2^*, c_3^* \xleftarrow{\$} \{0, 1\}^n\), and returns the challenge ciphertext \(c_{\mathsf{FO}}^* = (c^*, c_2^*, c_3^*)\) to \(\mathcal{A}\).
+    In an honest encryption of \(m_b\) using randomness \(r^*\), we would have \(c_2^* = H_1(r^*) \oplus m_b\) and \(c_3^* = H_2(m_b \parallel r^*)\).
+    Since \(H_1(r^*)\) and \(H_2(m_b \parallel r^*)\) are uniformly random in the random oracle model, replacing \(c_2^*\) and \(c_3^*\) with fresh random strings is completely indistinguishable to \(\mathcal{A}\)---and reveals zero information about \(b\)---unless \(\mathcal{A}\) explicitly queries \(H_1(r^*)\) or \(H_2(\cdot \parallel r^*)\).
+
+    The simulator answers hash queries via lazy sampling while continuously testing candidate seeds against the challenge ciphertext.
+    Since \(K.\mathsf{Enc}\) is deterministic, \(\mathcal{S}\) can easily recognize the secret \(r^*\) without knowing the secret key:
+    \begin{itemize}
+        \item On a query \(H_1(r)\), \(\mathcal{S}\) checks whether \(K.\mathsf{Enc}(\mathsf{pk}, r) = c^*\). If so, it has found \(r = r^*\); it immediately outputs \(r\) and halts, winning the OW-CPA game. Otherwise, it checks if \((r, h) \in D_1\), returning \(h\) if found; if not, it samples \(h \xleftarrow{\$} \{0, 1\}^n\), records \((r, h) \in D_1\), and returns \(h\).
+        \item On a query \(H_2(x)\), \(\mathcal{S}\) responds identically via lazy sampling using table \(D_2\).
+    \end{itemize}
+
+    When \(\mathcal{A}\) queries the decryption oracle on a ciphertext \(c = (c_1, c_2, c_3) \neq c_{\mathsf{FO}}^*\), \(\mathcal{S}\) cannot decrypt \(c_1\) directly because it lacks \(\mathsf{sk}\).
+    Instead, it searches the table \(D_2\) of recorded \(H_2\) queries to invert and verify the ciphertext:
+    \begin{enumerate}
+        \item Find all recorded query pairs \((m \parallel r, c_3) \in D_2\) whose output matches the tag \(c_3\).
+        \item Filter out any pair where \(K.\mathsf{Enc}(\mathsf{pk}, r) \neq c_1\).
+        \item Filter out any pair where \(\mathcal{O}^{H_1}(r) \oplus m \neq c_2\) (evaluating \(\mathcal{O}^{H_1}(r)\) via the \(H_1\) simulator above).
+        \item If a consistent pair \((m, r)\) remains, return \(m\); otherwise, return \(\bot\).
+    \end{enumerate}
+
+    To see why searching \(D_2\) accurately simulates the decryption oracle, observe that for any ciphertext \(c = (c_1, c_2, c_3)\), the seed \(r = K.\mathsf{Dec}(\mathsf{sk}, c_1)\) is uniquely determined by \(c_1\). This in turn uniquely determines the candidate message \(m = c_2 \oplus H_1(r)\) and the required verification tag \(c_3' = H_2(m \parallel r)\).
+    We can therefore classify any decryption query into one of four possible types:
+    \begin{itemize}
+        \item \emph{Type 1 (Valid, Good):} The ciphertext \(c\) is valid and \(\mathcal{A}\) previously queried \(H_2(m \parallel r)\). In this case, \((m \parallel r, c_3) \in D_2\). When \(\mathcal{S}\) verifies the conditions, it evaluates \(\mathcal{O}^{H_1}(r)\) (which completes normally as long as \(r \neq r^*\)) and correctly returns \(m\), matching honest decryption.
+        \item \emph{Type 2 (Invalid, Good):} The ciphertext \(c\) is invalid. Since no pair \((m, r)\) can satisfy all checks, \(\mathcal{S}\) returns \(\bot\), again matching honest decryption.
+        \item \emph{Type 3 (Valid, Bad):} The ciphertext \(c\) is valid, meaning \(c_3 = H_2(m \parallel r)\), yet \(\mathcal{A}\) never queried \(H_2(m \parallel r)\). Because \((m \parallel r, c_3) \notin D_2\), \(\mathcal{S}\) mistakenly returns \(\bot\) instead of \(m\). However, since \(H_2(m \parallel r)\) has never been queried, its value is completely uniform and independent of \(\mathcal{A}\)'s view, so \(\mathcal{A}\) can guess the correct tag \(c_3\) with probability at most \(\frac{1}{2^n}\) per query.
+        \item \emph{Type 4 (Triggers Win):} During the decryption verification (or via a direct hash query), \(\mathcal{O}^{H_1}\) is evaluated on the target seed \(r^*\) where \(K.\mathsf{Enc}(\mathsf{pk}, r^*) = c^*\). The simulator detects this immediately, outputs \(r^*\), and halts, winning the OW-CPA game.
+    \end{itemize}
+
+    Finally, we bound \(\mathcal{A}\)'s advantage by partitioning its winning executions according to the queries it makes:
+    \begin{align*}
+        \Pr[\mathcal{A} \text{ wins}]
+        &\le \Pr[\mathcal{A} \text{ wins and only Types 1 and 2 happen}] \\
+        &\quad + \Pr[\mathcal{A} \text{ wins and triggers Type 4}] \\
+        &\quad + \Pr[\mathcal{A} \text{ wins and no Type 4 and makes a Type 3 query}].
+    \end{align*}
+    We analyze each term separately.
+
+    If \(\mathcal{A}\) makes only Type~1 and Type~2 queries, the simulation is completely indistinguishable from the real IND-CCA game, and \(\mathcal{A}\) never queries \(r^*\). Because \(c_2^*\) is uniformly random and independent of \(b\), \(\mathcal{A}\) has no advantage over random guessing:
+    \[
+        \Pr[\mathcal{A} \text{ wins} \land \text{only Types 1 and 2}] \le \frac{1}{2}.
+    \]
+    If \(\mathcal{A}\) ever triggers a Type~4 event, \(\mathcal{S}\) intercepts \(r^*\) and wins the OW-CPA game, so
+    \[
+        \Pr[\mathcal{A} \text{ wins} \land \text{triggers Type 4}] \le \Pr[\mathcal{S} \text{ wins OW-CPA}].
+    \]
+    If \(\mathcal{A}\) never triggers Type~4, each of its \(Q^{\mathsf{Dec}}\) decryption queries has probability at most \(\frac{1}{2^n}\) of being a Type~3 query. By the union bound,
+    \[
+        \Pr[\mathcal{A} \text{ wins} \land \text{no Type 4} \land \text{makes a Type 3 query}] \le \frac{Q^{\mathsf{Dec}}}{2^n}.
+    \]
+
+    Combining these bounds yields
+    \[
+        \frac{1}{2} + \operatorname{Adv}_{\mathcal{A}} \le \frac{1}{2} + \Pr[\mathcal{S} \text{ wins OW-CPA}] + \frac{Q^{\mathsf{Dec}}}{2^n},
+    \]
+    which rearranges to
+    \[
+        \operatorname{Adv}_{\mathcal{A}} - \frac{Q^{\mathsf{Dec}}}{2^n} \le \Pr[\mathcal{S} \text{ wins OW-CPA}].
+    \]
+    Because \(\mathcal{A}\) is a PPT adversary, \(Q^{\mathsf{Dec}} = \operatorname{poly}(\lambda)\) while \(2^n = 2^\lambda\), making \(\frac{Q^{\mathsf{Dec}}}{2^n}\) negligible.
+    Hence, if \(\mathcal{A}\) has non-negligible advantage \(\operatorname{Adv}_{\mathcal{A}}\), then \(\mathcal{S}\) succeeds with non-negligible probability in breaking OW-CPA, completing the proof.
+\end{proof}

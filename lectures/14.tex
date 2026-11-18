@@ -75,23 +75,39 @@ Therefore, the forward NTT runs in \(O(d \log d)\) operations in \(\mathbb{Z}_q\
 
 Since the NTT is a ring isomorphism, polynomial multiplication in \(R_q\) corresponds to pointwise (Hadamard) multiplication \(\circ\) in the NTT domain \(\hat{R}_q \cong \mathbb{Z}_q^d\).
 This yields the accelerated Ring-LWE scheme:
-\begin{itemize}
-    \item \(\mathsf{KeyGen}()\): Sample \(\hat{a} \xleftarrow{\$} \hat{R}_q\) directly in the NTT domain, and small polynomials \(s, e \leftarrow \chi^d\).
-    Compute \(\hat{s} = \mathsf{NTT}(s)\), \(\hat{e} = \mathsf{NTT}(e)\), and
-    \[
-        \hat{b} = \hat{a} \circ \hat{s} + \hat{e} \in \hat{R}_q.
-    \]
-    Output \(\mathsf{pk} = (\hat{a}, \hat{b})\) and \(\mathsf{sk} = \hat{s}\).
-    \item \(\mathsf{Enc}(\mathsf{pk}, m(x))\): Sample small polynomials \(r, e', e'' \leftarrow \chi^d\).
-    Compute \(\hat{r} = \mathsf{NTT}(r)\), \(\hat{e}' = \mathsf{NTT}(e')\), \(\hat{e}'' = \mathsf{NTT}(e'')\), and \(\hat{m} = \mathsf{NTT}(m(x) \lfloor q/2 \rfloor)\).
-    Compute
-    \[
-        \hat{c}_1 = \hat{a} \circ \hat{r} + \hat{e}' \in \hat{R}_q, \qquad \hat{c}_2 = \hat{b} \circ \hat{r} + \hat{e}'' + \hat{m} \in \hat{R}_q.
-    \]
-    Output the ciphertext \(\hat{c} = (\hat{c}_1, \hat{c}_2)\).
-    \item \(\mathsf{Dec}(\mathsf{sk}, \hat{c})\): Compute \(\hat{w} = \hat{c}_2 - \hat{c}_1 \circ \hat{s} \in \hat{R}_q\), and invert \(w(x) = \mathsf{NTT}^{-1}(\hat{w}) \in R_q\).
-    Decode each bit \(m_i = 0\) if \(|w_i|_q < q/4\), and \(1\) otherwise.
-\end{itemize}
+
+\begin{definition}[NTT-Accelerated Ring-LWE Encryption Scheme]\label{def:ntt-ring-lwe-pke}
+    Fix dimension \(d = 2^k\), modulus \(q\) with \(2d \mid (q - 1)\), error distribution \(\chi\) over \(R_q\), and NTT domain \(\hat{R}_q \cong \mathbb{Z}_q^d\).
+    \begin{algorithmic}[1]
+        \Procedure{$\mathsf{KeyGen}$}{}
+            \State Sample \(\hat{a} \xleftarrow{\$} \hat{R}_q, \quad s, e \leftarrow \chi^d\)
+            \State \(\hat{s} \gets \mathsf{NTT}(s), \quad \hat{e} \gets \mathsf{NTT}(e)\)
+            \State \(\hat{b} \gets \hat{a} \circ \hat{s} + \hat{e} \in \hat{R}_q\)
+            \State \Return \((\mathsf{pk} \gets (\hat{a}, \hat{b}), \; \mathsf{sk} \gets \hat{s})\)
+        \EndProcedure
+        \Statex
+        \Procedure{$\mathsf{Enc}$}{$\mathsf{pk} = (\hat{a}, \hat{b}), \, m(x) \in \mathcal{M}$}
+            \State Sample \(r, e', e'' \leftarrow \chi^d\)
+            \State \(\hat{r} \gets \mathsf{NTT}(r), \quad \hat{e}' \gets \mathsf{NTT}(e'), \quad \hat{e}'' \gets \mathsf{NTT}(e''), \quad \hat{m} \gets \mathsf{NTT}(m(x) \lfloor q/2 \rfloor)\)
+            \State \(\hat{c}_1 \gets \hat{a} \circ \hat{r} + \hat{e}' \in \hat{R}_q\)
+            \State \(\hat{c}_2 \gets \hat{b} \circ \hat{r} + \hat{e}'' + \hat{m} \in \hat{R}_q\)
+            \State \Return \(\hat{c} \gets (\hat{c}_1, \hat{c}_2)\)
+        \EndProcedure
+        \Statex
+        \Procedure{$\mathsf{Dec}$}{$\mathsf{sk} = \hat{s}, \, \hat{c} = (\hat{c}_1, \hat{c}_2)$}
+            \State \(\hat{w} \gets \hat{c}_2 - \hat{c}_1 \circ \hat{s} \in \hat{R}_q\)
+            \State \(w(x) \gets \mathsf{NTT}^{-1}(\hat{w}) \in R_q\)
+            \For{\(i = 0, \dots, d - 1\)}
+                \If{\(|w_i|_q < q/4\)}
+                    \State \(m_i \gets 0\)
+                \Else
+                    \State \(m_i \gets 1\)
+                \EndIf
+            \EndFor
+            \State \Return \(m(x) \gets \sum_{i=0}^{d-1} m_i x^i\)
+        \EndProcedure
+    \end{algorithmic}
+\end{definition}
 All polynomial multiplications now run in \(O(d \log d)\) ring operations instead of \(O(d^2)\).
 
 \section*{Module-LWE}

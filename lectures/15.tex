@@ -61,35 +61,47 @@ A function \(\epsilon(\lambda)\) is \emph{negligible} (denoted \(\operatorname{n
 \section*{Instantiation with Elliptic Curves}
 
 We instantiate the public-key encryption syntax using the ElGamal encryption scheme over an elliptic curve group.
-Let \(E\) be an elliptic curve defined over a finite field \(\mathbb{F}_p\), and let \(P \in E(\mathbb{F}_p)\) be a base point generating a cyclic subgroup of prime order \(q\).
-The message space \(\mathcal{M}\) consists of points embedded into the group \(\langle P \rangle\).
-The scheme is specified by the following algorithms:
-\begin{itemize}
-    \item \(\mathsf{KeyGen}()\):
-    Sample a private key uniformly at random, \(x \xleftarrow{\$} \mathbb{Z}_q\).
-    Compute the public point \(Q = xP\).
-    Output the key pair
-    \[
-        \mathsf{pk} = Q, \qquad \mathsf{sk} = x.
-    \]
-    \item \(\mathsf{Enc}(\mathsf{pk}, m)\):
-    Given a public key \(\mathsf{pk} = Q\) and a message point \(m \in \langle P \rangle\), sample an ephemeral scalar \(y \xleftarrow{\$} \mathbb{Z}_q\).
-    Compute the shared secret point \(S = y Q = y (x P)\) and the ciphertext components
-    \[
-        c_1 = yP, \qquad c_2 = m + S.
-    \]
-    Output the ciphertext \(c = (c_1, c_2)\).
-    \item \(\mathsf{Dec}(\mathsf{sk}, c)\):
-    Given the secret key \(\mathsf{sk} = x\) and ciphertext \(c = (c_1, c_2)\), reconstruct the shared secret point using \(c_1\):
-    \[
-        S = x c_1 = x (yP) = y(xP).
-    \]
-    Recover and output the plaintext point:
-    \[
-        m = c_2 - S = c_2 - x c_1.
-    \]
-\end{itemize}
-Correctness holds immediately since \(x c_1 = x (yP) = y (xP) = y Q = S\), and hence \(c_2 - x c_1 = (m + S) - S = m\).
+
+\begin{definition}[Elliptic-Curve ElGamal Encryption Scheme]\label{def:ec-elgamal-pke}
+Let \(E\) be an elliptic curve defined over a finite field \(\mathbb{F}_p\), and let \(P \in E(\mathbb{F}_p)\) be a base point generating a cyclic subgroup \(\langle P \rangle\) of prime order \(q\).
+The message space \(\mathcal{M} = \langle P \rangle\) consists of curve points embedded into \(\langle P \rangle\).
+
+\noindent
+\begin{minipage}[t]{0.30\linewidth}%
+\begin{algorithmic}[1]
+    \Procedure{$\mathsf{KeyGen}$}{}
+        \State \(x \xleftarrow{\$} \mathbb{Z}_q\)
+        \State \(Q \gets xP\)
+        \State \Return \((Q, x)\)
+    \EndProcedure
+\end{algorithmic}%
+\end{minipage}\hfill
+\begin{minipage}[t]{0.36\linewidth}%
+\begin{algorithmic}[1]
+    \Procedure{$\mathsf{Enc}$}{$Q, m$}
+        \State \(y \xleftarrow{\$} \mathbb{Z}_q\)
+        \State \(c_1 \gets yP\)
+        \State \(c_2 \gets m + yQ\)
+        \State \Return \((c_1, c_2)\)
+    \EndProcedure
+\end{algorithmic}%
+\end{minipage}\hfill
+\begin{minipage}[t]{0.32\linewidth}%
+\begin{algorithmic}[1]
+    \Procedure{$\mathsf{Dec}$}{$x, c$}
+        \State Parse \(c = (c_1, c_2)\)
+        \State \(S \gets x c_1\)
+        \State \Return \(c_2 - S\)
+    \EndProcedure
+\end{algorithmic}%
+\end{minipage}%
+\end{definition}
+
+\paragraph*{Correctness}
+Correctness holds immediately since \(x c_1 = x (yP) = y (xP) = y Q\), and hence
+\[
+    \mathsf{Dec}(\mathsf{sk}, \mathsf{Enc}(\mathsf{pk}, m)) = c_2 - x c_1 = (m + y Q) - y Q = m.
+\]
 
 \section*{Hard Problems and Reductions}
 

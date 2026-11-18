@@ -25,6 +25,33 @@
 \algnewcommand\algorithmicoutput{\textbf{Output:}}
 \algnewcommand\Input{\item[\algorithmicinput]}
 \algnewcommand\Output{\item[\algorithmicoutput]}
+
+\algtext*{EndProcedure}
+
+\makeatletter
+\newif\ifALG@linenumber
+\ALG@linenumbertrue
+
+\def\ALG@step%
+   {%
+   \ifALG@linenumber%
+     \addtocounter{ALG@line}{1}%
+     \addtocounter{ALG@rem}{1}%
+     \ifthenelse{\equal{\arabic{ALG@rem}}{\ALG@numberfreq}}%
+        {\setcounter{ALG@rem}{0}\alglinenumber{\arabic{ALG@line}}}%
+        {}%
+   \fi%
+   }%
+
+\let\oldProcedure\Procedure
+\def\Procedure#1#2{%
+  \ALG@linenumberfalse%
+  \oldProcedure{#1}{#2}%
+  \setcounter{ALG@line}{0}%
+  \setcounter{ALG@rem}{0}%
+  \ALG@linenumbertrue%
+}
+\makeatother
 \usepackage[nameinlink,noabbrev,sort&compress]{cleveref}
 
 \usepackage{booktabs}

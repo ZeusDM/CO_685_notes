@@ -34,30 +34,37 @@ Any polynomial \(s(x) = \sum_{i=0}^{d-1} s_i x^i \in R_q\) corresponds bijective
 
 Fix the dimension \(d\) (typically a power of \(2\)) and modulus \(q\).
 Messages are now polynomials \(m(x) = \sum_{i=0}^{d-1} m_i x^i \in R_q\) encoding \(d\) bits \(m_i \in \{0, 1\}\).
-\begin{itemize}
-    \item \(\mathsf{KeyGen}()\): Sample a uniform polynomial \(a(x) \xleftarrow{\$} R_q\) and small polynomials \(s(x), e(x) \leftarrow \chi^d\).
-    Compute \(b(x) = a(x)s(x) + e(x) \in R_q\).
-    Output \(\mathsf{pk} = (a(x), b(x))\) and \(\mathsf{sk} = s(x)\).
-    \item \(\mathsf{Enc}(\mathsf{pk}, m(x))\): Sample short polynomials \(r(x), e'(x), e''(x) \leftarrow \chi^d\). Compute
-    \[
-        c_1(x) = r(x)a(x) + e'(x) \in R_q, \qquad c_2(x) = r(x)b(x) + e''(x) + m(x) \lfloor q/2 \rfloor \in R_q.
-    \]
-    Output the ciphertext \(c(x) = (c_1(x), c_2(x))\).
-    \item \(\mathsf{Dec}(\mathsf{sk}, c)\): Compute the polynomial
-    \[
-        \tilde{m}(x) = c_2(x) - c_1(x) s(x) \in R_q.
-    \]
-    For each coefficient \(\tilde{m}_i\) of \(\tilde{m}(x)\), decode
-    \[
-        m_i =
-        \begin{cases}
-            0 & \text{if } |\tilde{m}_i|_q < q/4, \\
-            1 & \text{otherwise}.
-        \end{cases}
-    \]
-    Output \(m(x) = \sum_{i=0}^{d-1} m_i x^i\).
-\end{itemize}
+\begin{definition}[Ring-LWE Public-Key Encryption Scheme]\label{def:ring-lwe-pke}
+    Fix dimension \(d = 2^k\), modulus \(q\), error distribution \(\chi\) over \(R_q = \mathbb{Z}_q[x] / (x^d + 1)\), and message space \(\mathcal{M} = \left\{ m(x) = \sum_{i=0}^{d-1} m_i x^i \in R_q : m_i \in \{0, 1\} \right\}\).
+    \begin{algorithmic}[1]
+        \Procedure{$\mathsf{KeyGen}$}{}
+            \State Sample \(a(x) \xleftarrow{\$} R_q, \quad s(x), e(x) \leftarrow \chi^d\)
+            \State \(b(x) \gets a(x)s(x) + e(x) \in R_q\)
+            \State \Return \((\mathsf{pk} \gets (a(x), b(x)), \; \mathsf{sk} \gets s(x))\)
+        \EndProcedure
+        \Statex
+        \Procedure{$\mathsf{Enc}$}{$\mathsf{pk} = (a(x), b(x)), \, m(x) \in \mathcal{M}$}
+            \State Sample \(r(x), e'(x), e''(x) \leftarrow \chi^d\)
+            \State \(c_1(x) \gets r(x)a(x) + e'(x) \in R_q\)
+            \State \(c_2(x) \gets r(x)b(x) + e''(x) + m(x) \lfloor q/2 \rfloor \in R_q\)
+            \State \Return \(c(x) \gets (c_1(x), c_2(x))\)
+        \EndProcedure
+        \Statex
+        \Procedure{$\mathsf{Dec}$}{$\mathsf{sk} = s(x), \, c(x) = (c_1(x), c_2(x))$}
+            \State \(\tilde{m}(x) \gets c_2(x) - c_1(x) s(x) \in R_q\)
+            \For{\(i = 0, \dots, d - 1\)}
+                \If{\(|\tilde{m}_i|_q < q/4\)}
+                    \State \(m_i \gets 0\)
+                \Else
+                    \State \(m_i \gets 1\)
+                \EndIf
+            \EndFor
+            \State \Return \(m(x) \gets \sum_{i=0}^{d-1} m_i x^i\)
+        \EndProcedure
+    \end{algorithmic}
+\end{definition}
 
+\paragraph*{Correctness}
 Substituting the expressions for \(c_1(x)\) and \(c_2(x)\):
 \begin{align*}
     \tilde{m}(x) &= c_2(x) - c_1(x) s(x) \\

@@ -3,33 +3,33 @@
 In the last lecture, we saw that standard ElGamal (and many base schemes) is vulnerable to chosen-ciphertext attacks (not IND-CCA secure) because ciphertexts can be malleated/tampered with.
 The \emph{Fujisaki--Okamoto (FO) transform} is a compiler that takes a weaker encryption scheme and upgrades it into a fully IND-CCA secure scheme using hash functions in the random oracle model (ROM).
 
-\begin{definition}[Fujisaki--Okamoto Transform]
+\begin{definition}[Fujisaki--Okamoto Transform]\label{def:fo-transform}
     Let \(K = (K.\mathsf{KeyGen},\allowbreak K.\mathsf{Enc},\allowbreak K.\mathsf{Dec})\) be a deterministic public-key encryption scheme, and let \(H_1, H_2\) be hash functions modeled as random oracles.
     The compiled scheme \(K^{\mathsf{FO}}\) is defined as follows:
-    \begin{itemize}
-        \item \(K^{\mathsf{FO}}.\mathsf{KeyGen}()\):
-        \begin{enumerate}
-            \item Run \((\mathsf{pk}, \mathsf{sk}) \gets K.\mathsf{KeyGen}()\).
-            \item Return \((\mathsf{pk}, \mathsf{sk})\).
-        \end{enumerate}
-
-        \item \(K^{\mathsf{FO}}.\mathsf{Enc}(\mathsf{pk}, m)\):
-        \begin{enumerate}
-            \item Sample a fresh random seed \(r \xleftarrow{\$} \mathcal{M}\).
-            \item Encrypt the seed: \(c_1 \gets K.\mathsf{Enc}(\mathsf{pk}, r)\).
-            \item Mask the message: \(c_2 \gets H_1(r) \oplus m\).
-            \item Create a verification tag: \(c_3 \gets H_2(m \parallel r)\).
-            \item Return \(c = (c_1, c_2, c_3)\).
-        \end{enumerate}
-
-        \item \(K^{\mathsf{FO}}.\mathsf{Dec}(\mathsf{sk}, c = (c_1, c_2, c_3))\):
-        \begin{enumerate}
-            \item Decrypt \(c_1\) to recover \(r' \gets K.\mathsf{Dec}(\mathsf{sk}, c_1)\).
-            \item Unmask \(m' \gets c_2 \oplus H_1(r')\).
-            \item Recompute the tag \(c_3' \gets H_2(m' \parallel r')\).
-            \item If \(c_3' = c_3\), return \(m'\); otherwise, reject and return \(\bot\).
-        \end{enumerate}
-    \end{itemize}
+    \begin{algorithmic}[1]
+        \Procedure{$K^{\mathsf{FO}}.\mathsf{KeyGen}$}{}
+            \State \((\mathsf{pk}, \mathsf{sk}) \gets K.\mathsf{KeyGen}()\)
+            \State \Return \((\mathsf{pk}, \mathsf{sk})\)
+        \EndProcedure
+        \Statex
+        \Procedure{$K^{\mathsf{FO}}.\mathsf{Enc}$}{$\mathsf{pk}, m$}
+            \State Sample seed \(r \xleftarrow{\$} \mathcal{M}\)
+            \State \(c_1 \gets K.\mathsf{Enc}(\mathsf{pk}, r)\)
+            \State \(c_2 \gets H_1(r) \oplus m\)
+            \State \(c_3 \gets H_2(m \parallel r)\)
+            \State \Return \(c \gets (c_1, c_2, c_3)\)
+        \EndProcedure
+        \Statex
+        \Procedure{$K^{\mathsf{FO}}.\mathsf{Dec}$}{$\mathsf{sk}, c = (c_1, c_2, c_3)$}
+            \State \(r' \gets K.\mathsf{Dec}(\mathsf{sk}, c_1)\)
+            \State \(m' \gets c_2 \oplus H_1(r')\)
+            \If{\(c_3 = H_2(m' \parallel r')\)}
+                \State \Return \(m'\)
+            \Else
+                \State \Return \(\bot\)
+            \EndIf
+        \EndProcedure
+    \end{algorithmic}
 \end{definition}
 
 The idea is that, if an attacker tries to tamper with \(c_1\) or \(c_2\), they do not know the resulting \((m', r')\), so they cannot forge the matching hash tag \(c_3\).

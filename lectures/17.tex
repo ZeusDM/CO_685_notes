@@ -15,7 +15,7 @@
 \end{definition}
 
 \begin{theorem}
-    El-Gamal is not IND-CCA secure.
+    ElGamal is not IND-CCA secure.
 \end{theorem}
 
 \begin{proof}
@@ -52,17 +52,39 @@
 
 The \emph{random oracle model} assumes \(H\) is a uniformly random function, that is, in a security game, \(\Pr[\mathcal{A}]\) is also taken over the choice of \(H\), and \(\mathcal{A}\) gets only ``black-box'' access to \(H\).
 
-\begin{example}[Deterministic El-Gamal]
-    Consider the following deterministic variant of El-Gamal:
-    \begin{itemize}
-        \item \(\mathsf{KeyGen}()\) is the same as in El-Gamal.
-        \item \(\mathsf{Enc}(\mathsf{pk}, m)\) computes \(r = H(m)\) and outputs \(c = (rP, r\mathsf{pk} + m)\).
-        \item \(\mathsf{Dec}(\mathsf{sk}, c)\) is the same as in El-Gamal.
-    \end{itemize}
+\begin{example}[Deterministic ElGamal]\label{ex:det-elgamal}
+    Let \(G = \langle P \rangle\) have prime order \(q\) with random oracle \(H \colon G \to \mathbb{Z}_q\).
+    The deterministic variant of ElGamal is defined by:
+
+    \noindent
+    \begin{minipage}[t]{0.30\linewidth}%
+    \begin{algorithmic}[1]
+        \Procedure{$\mathsf{KeyGen}$}{}
+            \State \(x \xleftarrow{\$} \mathbb{Z}_q\)
+            \State \Return \((xP, x)\)
+        \EndProcedure
+    \end{algorithmic}%
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.36\linewidth}%
+    \begin{algorithmic}[1]
+        \Procedure{$\mathsf{Enc}$}{$\mathsf{pk}, m$}
+            \State \(r \gets H(m)\)
+            \State \Return \((rP, r\mathsf{pk} + m)\)
+        \EndProcedure
+    \end{algorithmic}%
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.32\linewidth}%
+    \begin{algorithmic}[1]
+        \Procedure{$\mathsf{Dec}$}{$\mathsf{sk}, c$}
+            \State Parse \(c = (c_1, c_2)\)
+            \State \Return \(c_2 - \mathsf{sk} \cdot c_1\)
+        \EndProcedure
+    \end{algorithmic}%
+    \end{minipage}%
 \end{example}
 
 \begin{proposition}
-    The deterministic El-Gamal scheme is:
+    The deterministic ElGamal scheme is:
     \begin{enumerate}
         \item not IND-CPA secure;
         \item OW-CPA secure in the random oracle model, assuming CDH is hard in \(G\) and DDH is easy in \(G\).
